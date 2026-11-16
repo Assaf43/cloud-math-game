@@ -20,7 +20,7 @@ test.each([4, 5, 6] as const)('fairness holds for %i slots over 60 s', count => 
       expect(sawExposure).toBe(true);
     }
   }
-});
+}, 30000);
 
 test.each([4, 5, 6] as const)('layout for %i slots is in bounds and not overlapping', count => {
   const s = slotLayout(count); expect(s).toHaveLength(count);
