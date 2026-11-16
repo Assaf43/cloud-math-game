@@ -1,20 +1,10 @@
 import type { Rng } from '../types';
 import { pick, randInt } from '../rng';
 import { intProblem, type TopicGenerator, type TopicTable } from './topic';
-
-/** Digit-wise sum without carrying, a common addition error. */
-function noCarryAdd(a: number, b: number): number {
-  const x = String(a).padStart(String(b).length, '0'), y = String(b).padStart(x.length, '0');
-  return parseInt([...x].map((c, i) => (+c + +y[i]) % 10).join(''), 10);
-}
-/** Digit-wise absolute difference without borrowing, a common subtraction error. */
-function noBorrowSub(a: number, b: number): number {
-  const x = String(a), y = String(b).padStart(x.length, '0');
-  return parseInt([...x].map((c, i) => Math.abs(+c - +y[i])).join(''), 10);
-}
+import { noBorrowSub, noCarryAdd } from './errors';
 
 const addGen = (lo: number, hi: number, max: number): TopicGenerator => rng => {
-  const a = randInt(rng, lo, hi - lo > 0 ? Math.min(hi, max - lo) : hi);
+  const a = randInt(rng, lo, Math.min(hi, max - lo));
   const b = randInt(rng, lo, Math.min(hi, max - a));
   const s = a + b;
   return intProblem('g3.add', `${a} + ${b}`, s, [noCarryAdd(a, b), s + 10, s - 10, s + 100, s - 100]);
