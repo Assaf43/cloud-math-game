@@ -187,8 +187,10 @@ export class GameScreen {
     this.roundCard.hidden = true;
 
     this.game.append(status, this.sceneRoot, this.problemEl, answerRow);
-    if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
       new Keypad(this.game, key => { if (!this.destroyed) this.handleKey(key); });
+      this.game.classList.add('has-keypad');             // CSS hook for the landscape layout (works without :has())
+    }
     this.game.append(this.pauseOverlay, this.roundCard);
     this.root.replaceChildren(this.game);
     this.updateStatus();

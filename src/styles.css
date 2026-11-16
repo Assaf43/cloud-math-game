@@ -150,16 +150,16 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 /* ---------- game screen ---------- */
 .game { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; background: #e8f1fb; }
 .status {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 10px;
-  background: #fff; font-size: clamp(.75rem, 2.3dvh, 1rem); font-weight: 700;
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 4px 10px; padding: 3px 8px;
+  background: #fff; font-size: clamp(.68rem, 2.3dvh, 1rem); font-weight: 700; white-space: nowrap;
 }
-.status-name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+.status-name { flex: 0 1 auto; min-width: 0; max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
 .status-score { margin-inline-start: auto; }
-.status button { min-width: 36px; height: 32px; border: 0; border-radius: 8px; background: #e6eefb; font-size: 1.1rem; cursor: pointer; }
-.game-sky { flex: 1 1 0; min-height: 40%; position: relative; }
+.status button { flex: none; min-width: 32px; height: 28px; border: 0; border-radius: 8px; background: #e6eefb; font-size: 1.1rem; cursor: pointer; }
+.game-sky { flex: 1 1 0; min-height: 36%; position: relative; }
 .problem {
   flex: none; padding: 4px 12px; text-align: center; font-weight: 900; color: var(--ink);
-  font-size: clamp(1.5rem, 5.8dvh, 3.2rem); line-height: 1.15; background: #fff;
+  font-size: clamp(1.2rem, 5.2dvh, 3.2rem); line-height: 1.15; background: #fff;
 }
 .answer-row { flex: none; display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #fff; }
 .answer-display {
@@ -185,13 +185,13 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 .key-enter { grid-column: span 2; background: var(--accent); color: #fff; box-shadow: 0 2px 0 #1d5fb4; }
 /* Landscape phones/tablets: the keypad moves beside the game so the sky keeps its height */
 @media (min-aspect-ratio: 1/1) and (max-height: 560px) {
-  .game:has(> .keypad) { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 30%, 280px); grid-template-rows: auto minmax(0, 1fr) auto auto; }
-  .game:has(> .keypad) > .status { grid-column: 1 / -1; }
-  .game:has(> .keypad) > .game-sky { grid-column: 1; grid-row: 2; min-height: 0; }
-  .game:has(> .keypad) > .problem { grid-column: 1; grid-row: 3; }
-  .game:has(> .keypad) > .answer-row { grid-column: 1; grid-row: 4; }
-  .game:has(> .keypad) > .keypad { grid-column: 2; grid-row: 2 / 5; grid-auto-rows: 1fr; padding-bottom: 6px; }
-  .game:has(> .keypad) .key { height: auto; font-size: clamp(1rem, 6dvh, 1.5rem); }
+  .game.has-keypad { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 30%, 280px); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .game.has-keypad > .status { grid-column: 1 / -1; }
+  .game.has-keypad > .game-sky { grid-column: 1; grid-row: 2; min-height: 0; }
+  .game.has-keypad > .problem { grid-column: 1; grid-row: 3; }
+  .game.has-keypad > .answer-row { grid-column: 1; grid-row: 4; }
+  .game.has-keypad > .keypad { grid-column: 2; grid-row: 2 / 5; grid-auto-rows: 1fr; padding-bottom: 6px; }
+  .game.has-keypad .key { height: auto; font-size: clamp(1rem, 6dvh, 1.5rem); }
 }
 
 .game.is-paused .game-sky, .game.is-paused .problem, .game.is-paused .answer-row { visibility: hidden; }

@@ -221,6 +221,8 @@ test('touch devices get the keypad and it types; others do not', async () => {
   mm(true);
   const b = setup(); await b.screen.start();
   expect(b.root.querySelector('.keypad')).not.toBeNull();
+  expect(b.root.querySelector('.game')!.classList.contains('has-keypad')).toBe(true);   // CSS hook (no :has() needed)
+  expect(a.root.querySelector('.game')).toBeNull();
   b.root.querySelector<HTMLButtonElement>('[data-key="7"]')!.click();
   expect(b.display()).toBe('7');
   b.root.querySelector<HTMLButtonElement>('[data-key="backspace"]')!.click();
