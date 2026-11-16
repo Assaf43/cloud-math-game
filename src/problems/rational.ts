@@ -2,7 +2,7 @@ import type { Answer, AnswerKind, Rational } from '../types';
 
 const MAX_INPUT_LENGTH = 8;
 
-function gcd(a: number, b: number): number {
+export function gcd(a: number, b: number): number {
   while (b) [a, b] = [b, a % b];
   return a;
 }
