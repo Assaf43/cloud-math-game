@@ -2,8 +2,19 @@ import type { Answer, TimeOfDay, WeatherState } from '../types';
 import { cloudLefts, type Lane, type Slot } from './clouds';
 import { skylineSvg } from './skylines';
 
-const ANSWER_HEIGHT_PCT = 8.8;
-const CLOUD_HEIGHT_PCT = 9;
+const MAX_ROW_HEIGHT_PCT = 8.8;
+/** How far a cloud's bumps rise above its body, as a share of the cloud height. Keep in sync with `.cloud::before` in styles.css. */
+export const BUMP_OVERHANG_RATIO = 0.28;
+
+/**
+ * Answer pill and cloud share one height. It is capped so that a cloud, bumps included, never reaches the
+ * answer of the row above it (otherwise another lane's cloud could hide part of an answer).
+ */
+function rowHeightPct(slots: Slot[]): number {
+  const ys = slots.map(s => s.yPct).sort((a, b) => a - b);
+  const gap = Math.min(...ys.slice(1).map((y, i) => y - ys[i]), Infinity);
+  return Math.min(MAX_ROW_HEIGHT_PCT, gap / (1 + BUMP_OVERHANG_RATIO));
+}
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -57,6 +68,8 @@ export class SceneView {
   setAnswers(choices: Answer[], slots: Slot[], lanes: Lane[]): void {
     this.clear();
     this.lanes = lanes;
+    const rowHeight = +rowHeightPct(slots).toFixed(3);
+    this.root.style.setProperty('--ah', String(rowHeight));
     choices.forEach((choice, i) => {
       const slot = slots[i];
       const a = el('div', 'answer');
@@ -64,7 +77,7 @@ export class SceneView {
       a.style.left = `${slot.xPct}%`;
       a.style.top = `${slot.yPct}%`;
       a.style.width = `${slot.widthPct}%`;
-      a.style.height = `${ANSWER_HEIGHT_PCT}%`;
+      a.style.height = `${rowHeight}%`;
       a.append(answerContent(choice));
       this.answersLayer.append(a);
 
@@ -74,7 +87,7 @@ export class SceneView {
       for (let k = 0; k < perLane; k++) {
         const c = el('div', 'cloud');
         c.style.top = `${slot.yPct}%`;
-        c.style.height = `${CLOUD_HEIGHT_PCT}%`;
+        c.style.height = `${rowHeight}%`;
         c.style.width = `${lane.cloudWidthPct}%`;
         c.hidden = true;
         row.push(c);

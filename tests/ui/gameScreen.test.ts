@@ -249,3 +249,49 @@ test('a slow weather response does not start the clock early', async () => {
   s.frame(); expect(s.root.querySelector<HTMLElement>('.timer-bar')!.style.width).toBe('100%');
   s.screen.destroy();
 });
+
+test('hidden before the first problem starts: the problem begins paused and the clock does not run', async () => {
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+  const s = setup();
+  let resolve!: (w: WeatherState) => void;
+  s.fetchWeather.mockImplementationOnce(() => new Promise<WeatherState>(r => { resolve = r; }));
+  const started = s.screen.start();
+  s.addNow(5000); resolve('clear'); await started;
+  expect(s.root.querySelector('.game')!.classList.contains('is-paused')).toBe(true);
+  expect(s.audio.pauseMusic).toHaveBeenCalled();
+  s.addNow(60000); s.frame(100);
+  expect(s.session.phase).toBe('problem');
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+  s.screen.resume(); s.frame();
+  expect(s.session.phase).toBe('problem');
+  expect(s.root.querySelector<HTMLElement>('.timer-bar')!.style.width).toBe('100%');
+  delete (document as unknown as Record<string, unknown>).hidden;
+  s.screen.destroy();
+});
+
+const keyEvent = (init: KeyboardEventInit) => document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+
+test('Hebrew keyboard layout: the key labelled "/" and the "." key type / and .', async () => {
+  const s = setup(); await s.screen.start();
+  keyEvent({ key: '3', code: 'Digit3' });
+  keyEvent({ key: '.', code: 'Slash' });          // Hebrew layout: physical "/" key produces "."
+  keyEvent({ key: '4', code: 'Digit4' });
+  expect(s.display()).toBe('3/4');
+  keyEvent({ key: 'ץ', code: 'Period' });     // Hebrew layout: physical "." key produces a letter
+  expect(s.display()).toBe('3/4.');
+  keyEvent({ key: 'ת', code: 'Comma' });      // and the "," key a letter too
+  expect(s.display()).toBe('3/4..');
+  s.screen.destroy();
+});
+
+test('other layouts are unchanged and the numpad works', async () => {
+  const s = setup(); await s.screen.start();
+  keyEvent({ key: '/', code: 'Slash' }); expect(s.display()).toBe('/');
+  keyEvent({ key: '/', code: 'NumpadDivide' }); expect(s.display()).toBe('//');
+  keyEvent({ key: '.', code: 'NumpadDecimal' }); expect(s.display()).toBe('//.');
+  keyEvent({ key: '-', code: 'Slash' });          // e.g. German layout: "-" is not an input
+  expect(s.display()).toBe('//.');
+  keyEvent({ key: 'ק', code: 'KeyQ' });       // a Hebrew letter that is not one of ours
+  expect(s.display()).toBe('//.');
+  s.screen.destroy();
+});

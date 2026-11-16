@@ -26,9 +26,17 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   return node;
 }
 
+const HEBREW_LETTER = /[֐-׿]/;
+
 function mapKey(e: KeyboardEvent): string | null {
   if (e.ctrlKey || e.metaKey || e.altKey) return null;
   if (/^[0-9]$/.test(e.key)) return e.key;
+  // Israeli keyboard in Hebrew mode: the key labelled "/" produces ".", and the "." and "," keys produce letters.
+  // Go by the physical key so the labels the child sees on the keys are what gets typed.
+  if (e.code === 'Slash' && e.key === '.') return '/';
+  if ((e.code === 'Period' || e.code === 'Comma') && HEBREW_LETTER.test(e.key)) return '.';
+  if (e.code === 'NumpadDivide') return '/';
+  if (e.code === 'NumpadDecimal') return '.';
   switch (e.key) {
     case '/': return '/';
     case '.': case ',': return '.';
@@ -106,6 +114,8 @@ export class GameScreen {
     this.started = true;
     this.beginProblem();
     this.loop();
+    // The tab may have been hidden while the weather loaded: start paused, so the child finds the problem waiting.
+    if (document.hidden) this.pause();
   }
 
   pause(): void {

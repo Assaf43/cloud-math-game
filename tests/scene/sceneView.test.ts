@@ -1,5 +1,6 @@
 import { skylineSvg } from '../../src/scene/skylines';
-import { SceneView } from '../../src/scene/sceneView';
+import { SceneView, BUMP_OVERHANG_RATIO } from '../../src/scene/sceneView';
+import { readFileSync } from 'node:fs';
 import { makeLane, slotLayout } from '../../src/scene/clouds';
 import { CITIES } from '../../src/weather/cities';
 import { createRng } from '../../src/rng';
@@ -71,4 +72,24 @@ test('clear removes answers and clouds, setAnswers replaces the previous ones', 
   expect(root.querySelector('[data-answer="1"]')).toBeNull();
   v.clear();
   expect(root.querySelectorAll('[data-answer]')).toHaveLength(0); expect(root.querySelectorAll('.cloud')).toHaveLength(0);
+});
+
+test.each([4, 5, 6] as const)('a cloud (with its bumps) never reaches the answer of the row above, for %i answers', count => {
+  const { root, v, slots, lanes } = setup(count);
+  v.setAnswers(Array.from({ length: count }, (_, i) => intAnswer(i)), slots, lanes);
+  const ys = slots.map(s => s.yPct).sort((a, b) => a - b);
+  const gap = Math.min(...ys.slice(1).map((y, i) => y - ys[i]));
+  const answerH = parseFloat(root.querySelector<HTMLElement>('[data-answer]')!.style.height);
+  const cloudH = parseFloat(root.querySelector<HTMLElement>('.cloud')!.style.height);
+  expect(cloudH).toBeGreaterThanOrEqual(answerH);                       // a cloud still covers the whole answer
+  expect(cloudH * (1 + BUMP_OVERHANG_RATIO)).toBeLessThanOrEqual(gap + 1e-9);
+});
+
+test('the CSS bump overhang matches BUMP_OVERHANG_RATIO', () => {
+  const css = readFileSync('src/styles.css', 'utf8');
+  const m = css.match(/\.cloud::before\s*\{[^}]*top:\s*-(\d+(?:\.\d+)?)%/);
+  expect(m).not.toBeNull();
+  expect(+m![1] / 100).toBeLessThanOrEqual(BUMP_OVERHANG_RATIO + 1e-9);
+  const after = css.match(/\.cloud::after\s*\{[^}]*top:\s*-(\d+(?:\.\d+)?)%/);
+  expect(+after![1] / 100).toBeLessThanOrEqual(BUMP_OVERHANG_RATIO + 1e-9);
 });

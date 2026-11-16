@@ -93,7 +93,7 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   background: rgba(255, 255, 255, .94);
   color: var(--ink);
   font-weight: 800;
-  font-size: clamp(14px, 5.4cqh, 40px);
+  font-size: clamp(11px, calc(var(--ah, 8.8) * .6cqh), 40px);
   line-height: 1;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
   white-space: nowrap;
@@ -114,8 +114,8 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 }
 .cloud[hidden] { display: none; }
 .cloud::before, .cloud::after { content: ""; position: absolute; background: var(--cloud); border-radius: 50%; }
-.cloud::before { left: 16%; top: -34%; width: 34%; height: 92%; }
-.cloud::after { right: 14%; top: -22%; width: 28%; height: 72%; }
+.cloud::before { left: 16%; top: -28%; width: 34%; height: 92%; }
+.cloud::after { right: 14%; top: -18%; width: 28%; height: 72%; }
 
 /* ---------- shared widgets ---------- */
 button { font-family: inherit; }
