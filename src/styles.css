@@ -100,7 +100,7 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   transition: transform .2s, background-color .2s;
 }
 .answer bdi { display: inline-flex; align-items: center; gap: .18em; }
-.answer .frac { display: inline-flex; flex-direction: column; align-items: center; font-size: .66em; line-height: 1.05; }
+.answer .frac { display: inline-flex; flex-direction: column; align-items: center; font-size: .74em; line-height: 1.05; }
 .answer .frac .num { padding: 0 .2em; border-bottom: .09em solid currentColor; }
 .answer .whole { font-size: 1em; }
 .answer.is-correct { z-index: 4; background: #b6f2c1; box-shadow: 0 0 0 3px var(--good), 0 4px 12px rgba(0, 0, 0, .3); transform: scale(1.1); }
@@ -151,7 +151,7 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 .game { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; background: #e8f1fb; }
 .status {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 10px;
-  background: #fff; font-size: clamp(.8rem, 2.6dvh, 1.05rem); font-weight: 700;
+  background: #fff; font-size: clamp(.75rem, 2.3dvh, 1rem); font-weight: 700;
 }
 .status-name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
 .status-score { margin-inline-start: auto; }
@@ -159,7 +159,7 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 .game-sky { flex: 1 1 0; min-height: 40%; position: relative; }
 .problem {
   flex: none; padding: 4px 12px; text-align: center; font-weight: 900; color: var(--ink);
-  font-size: clamp(1.6rem, 6.5dvh, 3.4rem); line-height: 1.15; background: #fff;
+  font-size: clamp(1.5rem, 5.8dvh, 3.2rem); line-height: 1.15; background: #fff;
 }
 .answer-row { flex: none; display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #fff; }
 .answer-display {
@@ -175,15 +175,24 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 .timer-bar { height: 100%; width: 100%; background: var(--good); }
 .timer-bar.is-low { background: var(--bad); }
 
-.keypad { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: #cfdcf0; }
+.keypad { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: #cfdcf0; }
 .key {
-  height: clamp(34px, 6.2dvh, 54px); border: 0; border-radius: 10px; background: #fff; color: var(--ink);
+  height: clamp(30px, 5.4dvh, 50px); border: 0; border-radius: 10px; background: #fff; color: var(--ink);
   font-size: clamp(1.1rem, 3.6dvh, 1.6rem); font-weight: 800; touch-action: manipulation; user-select: none; -webkit-user-select: none; cursor: pointer;
   box-shadow: 0 2px 0 #9fb2d0;
 }
 .key:active { transform: translateY(2px); box-shadow: none; }
-.key-enter { background: var(--accent); color: #fff; box-shadow: 0 2px 0 #1d5fb4; }
-@media (min-aspect-ratio: 1/1) { .keypad { grid-template-columns: repeat(8, 1fr); } }
+.key-enter { grid-column: span 2; background: var(--accent); color: #fff; box-shadow: 0 2px 0 #1d5fb4; }
+/* Landscape phones/tablets: the keypad moves beside the game so the sky keeps its height */
+@media (min-aspect-ratio: 1/1) and (max-height: 560px) {
+  .game:has(> .keypad) { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 30%, 280px); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .game:has(> .keypad) > .status { grid-column: 1 / -1; }
+  .game:has(> .keypad) > .game-sky { grid-column: 1; grid-row: 2; min-height: 0; }
+  .game:has(> .keypad) > .problem { grid-column: 1; grid-row: 3; }
+  .game:has(> .keypad) > .answer-row { grid-column: 1; grid-row: 4; }
+  .game:has(> .keypad) > .keypad { grid-column: 2; grid-row: 2 / 5; grid-auto-rows: 1fr; padding-bottom: 6px; }
+  .game:has(> .keypad) .key { height: auto; font-size: clamp(1rem, 6dvh, 1.5rem); }
+}
 
 .game.is-paused .game-sky, .game.is-paused .problem, .game.is-paused .answer-row { visibility: hidden; }
 .overlay {
