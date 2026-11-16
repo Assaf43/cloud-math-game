@@ -65,6 +65,7 @@ export class GameScreen {
   private readonly display = el('div', 'answer-display');
   private readonly timerBar = el('div', 'timer-bar');
   private readonly pauseOverlay = el('div', 'overlay pause-overlay');
+  private readonly resumeBtn = el('button', 'primary', 'המשך');
   private readonly roundCard = el('div', 'overlay round-card');
   private readonly scene: SceneView;
 
@@ -82,6 +83,8 @@ export class GameScreen {
   private readonly onKeyDown = (e: KeyboardEvent) => {
     const key = mapKey(e);
     if (key === null || this.destroyed) return;
+    if (this.pausedAt !== null) return;                                   // paused: let Enter/Space press the focused "המשך"
+    if ((key === 'enter' || key === 'space') && e.target instanceof HTMLButtonElement) return;   // a focused button keeps its own keys
     e.preventDefault();
     this.handleKey(key);
   };
@@ -129,7 +132,10 @@ export class GameScreen {
     this.deps.audio.pauseMusic();
     this.game.classList.add('is-paused');
     this.pauseOverlay.hidden = false;
+    this.resumeBtn.focus();                                              // keyboard users can resume with Enter/Space
   }
+
+  get isPaused(): boolean { return this.pausedAt !== null; }
 
   resume(): void {
     if (this.destroyed || this.pausedAt === null) return;
@@ -139,6 +145,7 @@ export class GameScreen {
     this.deps.audio.resumeMusic();
     this.game.classList.remove('is-paused');
     this.pauseOverlay.hidden = true;
+    this.resumeBtn.blur();                                               // so a later space/Enter cannot press it again
     if (this.session.phase === 'reveal') this.armReveal(this.revealRemaining);
   }
 
@@ -174,10 +181,9 @@ export class GameScreen {
 
     this.pauseOverlay.hidden = true;
     this.pauseOverlay.append(el('p', 'overlay-title', 'המשחק מושהה'));
-    const resumeBtn = el('button', 'primary', 'המשך');
-    resumeBtn.type = 'button';
-    resumeBtn.addEventListener('click', () => this.resume());
-    this.pauseOverlay.append(resumeBtn);
+    this.resumeBtn.type = 'button';
+    this.resumeBtn.addEventListener('click', () => this.resume());
+    this.pauseOverlay.append(this.resumeBtn);
     this.roundCard.hidden = true;
 
     this.game.append(status, this.sceneRoot, this.problemEl, answerRow);
@@ -194,6 +200,7 @@ export class GameScreen {
     this.deps.onMuteChange?.(next);
     this.muteBtn.setAttribute('aria-pressed', String(next));
     this.muteBtn.textContent = next ? '🔇' : '🔊';
+    this.muteBtn.blur();                                                 // hand focus back: typing a space must not toggle mute again
   }
 
   private renderMute(): void {
@@ -251,7 +258,7 @@ export class GameScreen {
   }
 
   private handleKey(key: string): void {
-    if (this.pausedAt !== null || this.session.phase !== 'problem') return;
+    if (!this.started || this.pausedAt !== null || this.session.phase !== 'problem') return;
     switch (key) {
       case 'backspace': this.input = this.input.slice(0, -1); break;
       case 'enter': this.submit(); return;

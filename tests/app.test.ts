@@ -100,3 +100,45 @@ test('the app works when device storage is unavailable', async () => {
   await vi.advanceTimersByTimeAsync(1500);
   expect(root.querySelector('.final')).not.toBeNull();
 });
+
+function visibility(hidden: boolean) {
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+  document.dispatchEvent(new Event('visibilitychange'));
+}
+
+test('music stops while the tab is hidden on the summary and city screens, and returns afterwards', async () => {
+  const { root, audio } = boot();
+  set(root.querySelector<HTMLInputElement>('[name=name]')!, 'נועה');
+  set(root.querySelector<HTMLSelectElement>('[name=rounds]')!, '1');
+  root.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+  await flush();
+  await playRoundByTimeouts(root);
+  expect(root.querySelector('.summary')).not.toBeNull();
+  audio.pauseMusic.mockClear(); audio.resumeMusic.mockClear();
+  visibility(true);
+  expect(audio.pauseMusic).toHaveBeenCalledTimes(1);
+  visibility(false);
+  expect(audio.resumeMusic).toHaveBeenCalledTimes(1);
+  delete (document as unknown as Record<string, unknown>).hidden;
+});
+
+test('no music is started by visibility changes on the setup screen or after the game', async () => {
+  const { root, audio } = boot();
+  visibility(true); visibility(false);
+  expect(audio.resumeMusic).not.toHaveBeenCalled();
+  delete (document as unknown as Record<string, unknown>).hidden;
+  expect(root.querySelector('h1')).not.toBeNull();
+});
+
+test('after the tab was hidden during a problem, music comes back only when the child resumes', async () => {
+  const { root, audio } = boot();
+  set(root.querySelector<HTMLInputElement>('[name=name]')!, 'נועה');
+  root.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+  await flush();
+  audio.resumeMusic.mockClear();
+  visibility(true); visibility(false);
+  expect(audio.resumeMusic).not.toHaveBeenCalled();                  // the pause overlay is up
+  root.querySelector<HTMLButtonElement>('.pause-overlay button')!.click();
+  expect(audio.resumeMusic).toHaveBeenCalled();
+  delete (document as unknown as Record<string, unknown>).hidden;
+});

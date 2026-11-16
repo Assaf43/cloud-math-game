@@ -58,8 +58,8 @@ export class Storage {
       data.scores.sort((a, b) => b.avg - a.avg || b.date.localeCompare(a.date));
       data.scores.length = MAX_SCORES;
     }
-    this.write(data);
-    return { isPersonalBest };
+    const written = this.write(data);
+    return { isPersonalBest: isPersonalBest && written };       // a record that was not stored is not a record
   }
 
   personalBest(name: string, grade: Grade, difficulty: Difficulty): ScoreEntry | null {
@@ -105,8 +105,8 @@ export class Storage {
     }
   }
 
-  private write(data: Data): void {
-    if (!this.backend) return;
-    try { this.backend.setItem(KEY, JSON.stringify(data)); } catch { /* quota or blocked storage: nothing saved */ }
+  private write(data: Data): boolean {
+    if (!this.backend) return false;
+    try { this.backend.setItem(KEY, JSON.stringify(data)); return true; } catch { return false; }   // quota or blocked storage: nothing saved
   }
 }

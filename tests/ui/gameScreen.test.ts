@@ -295,3 +295,59 @@ test('other layouts are unchanged and the numpad works', async () => {
   expect(s.display()).toBe('//.');
   s.screen.destroy();
 });
+
+test('while the weather loads, the keypad and keyboard do nothing', async () => {
+  const mm = vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('coarse'), media: q, addEventListener() {}, removeEventListener() {} }));
+  void mm;
+  const s = setup();
+  let resolve!: (w: WeatherState) => void;
+  s.fetchWeather.mockImplementationOnce(() => new Promise<WeatherState>(r => { resolve = r; }));
+  const started = s.screen.start();
+  s.root.querySelector<HTMLButtonElement>('[data-key="7"]')!.click();
+  expect(s.display()).toBe('');
+  s.root.querySelector<HTMLButtonElement>('[data-key="enter"]')!.click();
+  expect(s.root.querySelector('.answer-display')!.classList.contains('shake')).toBe(false);   // nothing was even submitted
+  s.typeText('7'); s.press('Enter');
+  expect(s.display()).toBe(''); expect(s.session.phase).toBe('problem'); expect(s.session.totalScore).toBe(0);
+  resolve('clear'); await started;
+  s.root.querySelector<HTMLButtonElement>('[data-key="7"]')!.click();
+  expect(s.display()).toBe('7');
+  s.screen.destroy(); vi.unstubAllGlobals();
+});
+
+test('while paused the keys are left alone, so Enter/Space can press the focused "המשך" button', async () => {
+  const s = setup(); await s.screen.start();
+  s.screen.pause();
+  const resumeBtn = s.root.querySelector<HTMLButtonElement>('.pause-overlay button')!;
+  expect(document.activeElement).toBe(resumeBtn);
+  const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+  resumeBtn.dispatchEvent(ev);
+  expect(ev.defaultPrevented).toBe(false);
+  const sp = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+  resumeBtn.dispatchEvent(sp);
+  expect(sp.defaultPrevented).toBe(false);
+  resumeBtn.click();
+  expect(document.activeElement === document.body).toBe(true);     // focus is released so typing does not re-press it
+  s.screen.destroy();
+});
+
+test('Enter/Space on a focused toolbar button operate the button, not the answer', async () => {
+  const s = setup(); await s.screen.start();
+  const mute = s.root.querySelector<HTMLButtonElement>('.mute-btn')!;
+  s.typeText(s.session.problem.answer.text);
+  const ev = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+  mute.dispatchEvent(ev);
+  expect(ev.defaultPrevented).toBe(false);
+  expect(s.session.phase).toBe('problem');
+  s.press('Enter');                                                  // from the page itself it still submits
+  expect(s.session.phase).not.toBe('problem');
+  s.screen.destroy();
+});
+
+test('clicking mute or pause hands focus back, so typing a space afterwards cannot re-press them', async () => {
+  const s = setup(); await s.screen.start();
+  const mute = s.root.querySelector<HTMLButtonElement>('.mute-btn')!;
+  mute.focus(); mute.click();
+  expect(document.activeElement === document.body).toBe(true);
+  s.screen.destroy();
+});

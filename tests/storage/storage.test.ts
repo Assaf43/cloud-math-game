@@ -101,3 +101,7 @@ test('default backend is window.localStorage when available', () => {
   expect(JSON.parse(localStorage.getItem(KEY)!).muted).toBe(true);
   localStorage.clear();
 });
+test('a score that could not be saved is not reported as a personal best', () => {
+  const s = new Storage({ getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } });
+  expect(s.addScore(score()).isPersonalBest).toBe(false);
+});
