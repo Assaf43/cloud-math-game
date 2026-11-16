@@ -23,7 +23,8 @@ const properFrac = (rng: Rng, dLo: number, dHi: number, whole = 0): Frac => {
 // ---- g6.frac-mul -----------------------------------------------------------------
 const fracMul = (shape: 'whole' | 'frac' | 'mixed'): TopicGenerator => bounded(rng => {
   if (shape === 'whole') {
-    const w = randInt(rng, 2, 9), f = properFrac(rng, 2, 9);
+    // a whole number that the denominator divides (6 × 2/3 = 4): a fraction of a quantity, no mixed number to build
+    const d = randInt(rng, 2, 6), w = d * randInt(rng, 1, 4), f: Frac = { whole: 0, a: randInt(rng, 1, d - 1), d };
     return fracProblem('g6.frac-mul', `${w} × ${fracText(f)}`, mul(rat(w), fracValue(f)), [
       rat(f.a, f.d), rat(w * f.a, w + f.d), rat(w + f.a, f.d),
     ]);
@@ -40,7 +41,12 @@ const fracMul = (shape: 'whole' | 'frac' | 'mixed'): TopicGenerator => bounded(r
 const fracDiv = (shape: 'smallDivisions' | 'frac' | 'mixed'): TopicGenerator => bounded(rng => {
   if (shape === 'smallDivisions') {
     if (rng() < 0.5) {
-      const f = properFrac(rng, 2, 9), w = randInt(rng, 2, 9);
+      // 4/5 ÷ 2 = 2/5: the numerator divides evenly and the answer is already in lowest terms
+      let w: number, m: number, d: number;
+      do {
+        w = randInt(rng, 2, 4); m = randInt(rng, 1, 4); d = randInt(rng, w * m + 1, 9);
+      } while (w * m >= d || gcd(m, d) !== 1);
+      const f: Frac = { whole: 0, a: w * m, d };
       return fracProblem('g6.frac-div', `${fracText(f)} ÷ ${w}`, div(fracValue(f), rat(w)), [
         mul(fracValue(f), rat(w)), rat(f.a, f.d + w), rat(f.a / gcd(f.a, w), f.d),
       ]);

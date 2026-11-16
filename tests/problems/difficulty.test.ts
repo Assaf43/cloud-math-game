@@ -5,6 +5,7 @@ import { topics as t6 } from '../../src/problems/grade6';
 import type { TopicTable } from '../../src/problems/topic';
 import { createRng } from '../../src/rng';
 import { gcd } from '../../src/problems/rational';
+import { evalText } from './evalText';
 import type { Difficulty } from '../../src/types';
 
 /**
@@ -74,6 +75,22 @@ describe('grade 5', () => {
     }
     for (const [, divisor] of asNums(sample(t5, 'advanced', 'g5.div'))) expect([12, 15, 16, 18, 20, 25, 30]).toContain(divisor);
   });
+  test('beginner fractions: same denominator, the answer is a proper fraction that needs no simplifying and no mixed number', () => {
+    for (const topic of ['g5.frac-add', 'g5.frac-sub'])
+      for (const text of sample(t5, 'beginner', topic)) {
+        const [d1, d2] = [...text.matchAll(/\/(\d+)/g)].map(m => +m[1]);
+        expect(d1).toBe(d2);
+        const r = evalText(text)!;
+        expect(r.n).toBeGreaterThan(0);
+        expect(r.n).toBeLessThan(r.d);          // below 1: no mixed number
+        expect(r.d).toBe(d1);                   // already in lowest terms over the same denominator
+        expect(d1).toBeGreaterThanOrEqual(3);
+      }
+  });
+  test('advanced fractions: the answer stays below 1 (no mixed numbers)', () => {
+    for (const topic of ['g5.frac-add', 'g5.frac-sub'])
+      for (const text of sample(t5, 'advanced', topic)) { const r = evalText(text)!; expect(r.n).toBeLessThan(r.d); }
+  });
   test('fraction sums at expert have a common denominator of at most 24 and whole parts of at most 2', () => {
     for (const topic of ['g5.frac-add', 'g5.frac-sub'])
       for (const text of sample(t5, 'expert', topic)) {
@@ -101,6 +118,10 @@ describe('grade 5', () => {
 });
 
 describe('grade 6', () => {
+  test('beginner fractions give whole numbers or proper fractions, never mixed numbers', () => {
+    for (const text of sample(t6, 'beginner', 'g6.frac-mul')) { const r = evalText(text)!; expect(r.d).toBe(1); }
+    for (const text of sample(t6, 'beginner', 'g6.frac-div')) { const r = evalText(text)!; expect(r.d === 1 || r.n < r.d).toBe(true); }
+  });
   test('fractions use denominators of at most 6 (at most 5 at expert) and whole parts of at most 2', () => {
     for (const topic of ['g6.frac-mul', 'g6.frac-div'])
       for (const d of ['advanced', 'expert'] as const)

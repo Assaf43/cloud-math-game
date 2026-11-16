@@ -1,7 +1,8 @@
 import type { Rng } from '../types';
 import { pick, randInt } from '../rng';
 import { decProblem, fracProblem, intProblem, type TopicGenerator, type TopicTable } from './topic';
-import { eq, gcd, rat, sub as subR } from './rational';
+import { eq, gcd, rat, sub as subR, add as addR } from './rational';
+import type { Rational } from '../types';
 
 /*
  * Children answer in their heads in about 30 seconds, by tapping one of a few answers, so the numbers stay friendly
@@ -37,7 +38,7 @@ const fracText = (f: Frac) => (f.whole ? `${f.whole} ${f.a}/${f.d}` : `${f.a}/${
 const fracValue = (f: Frac) => rat(fracNum(f), f.d);
 
 type Denoms = (rng: Rng) => [number, number];
-const sameDenoms: Denoms = rng => { const d = randInt(rng, 2, 10); return [d, d]; };
+const sameDenoms: Denoms = rng => { const d = randInt(rng, 3, 10); return [d, d]; };
 const multipleDenoms: Denoms = rng => {
   const d = randInt(rng, 2, 4), big = d * randInt(rng, 2, 3);
   return rng() < 0.5 ? [d, big] : [big, d];
@@ -50,7 +51,15 @@ const otherDenoms: Denoms = rng => {
   }
 };
 
-const fracGen = (op: 'add' | 'sub', denoms: Denoms, mixed: boolean): TopicGenerator => rng => {
+/** Which results a level accepts (the generator draws again until one fits). */
+type ResultRule = (result: Rational, d1: number, d2: number) => boolean;
+const anyResult: ResultRule = () => true;
+/** Below 1: no mixed numbers to build. */
+const belowOne: ResultRule = r => r.n < r.d;
+/** Below 1 and already in lowest terms over the shared denominator (5/8 + 2/8 = 7/8): nothing to simplify. */
+const plainSameDenominator: ResultRule = (r, d1) => r.n < r.d && r.d === d1;
+
+const fracGen = (op: 'add' | 'sub', denoms: Denoms, mixed: boolean, accept: ResultRule = anyResult): TopicGenerator => rng => {
   const make = (d: number): Frac => ({
     whole: mixed && rng() < 0.5 ? randInt(rng, 1, 2) : 0,
     a: randInt(rng, 1, d - 1),
@@ -61,8 +70,9 @@ const fracGen = (op: 'add' | 'sub', denoms: Denoms, mixed: boolean): TopicGenera
     const [d1, d2] = denoms(rng);
     x = make(d1);
     y = make(d2);
-  } while (op === 'sub' && eq(fracValue(x), fracValue(y)));
-  if (op === 'sub' && fracNum(x) * y.d < fracNum(y) * x.d) [x, y] = [y, x];
+    if (op === 'sub' && fracNum(x) * y.d < fracNum(y) * x.d) [x, y] = [y, x];
+  } while ((op === 'sub' && eq(fracValue(x), fracValue(y))) ||
+           !accept(op === 'add' ? addR(fracValue(x), fracValue(y)) : subR(fracValue(x), fracValue(y)), x.d, y.d));
   const n1 = fracNum(x), n2 = fracNum(y);
   const text = `${fracText(x)} ${op === 'add' ? '+' : '−'} ${fracText(y)}`;
   if (op === 'add') {
@@ -138,11 +148,11 @@ const expertPool: FracPool = rng => {
 
 export const topics: TopicTable = {
   beginner: [
-    mulBeginner, divBeginner, fracGen('add', sameDenoms, false), fracGen('sub', sameDenoms, false),
+    mulBeginner, divBeginner, fracGen('add', sameDenoms, false, plainSameDenominator), fracGen('sub', sameDenoms, false, plainSameDenominator),
     decGen('add', decBeginner), decGen('sub', decBeginner), expandGen(2, 3, 6, false), toDecimal(halvesTenths),
   ],
   advanced: [
-    mulAdvanced, divAdvanced, fracGen('add', multipleDenoms, false), fracGen('sub', multipleDenoms, false),
+    mulAdvanced, divAdvanced, fracGen('add', multipleDenoms, false, belowOne), fracGen('sub', multipleDenoms, false, belowOne),
     decGen('add', decAdvanced), decGen('sub', decAdvanced), expandGen(2, 6, 6, false), toDecimal(quartersFifths),
   ],
   expert: [
