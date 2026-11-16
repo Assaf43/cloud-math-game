@@ -11,7 +11,7 @@ const cfg: GameConfig = { name: 'נועה', age: 10, grade: 5, difficulty: 'begi
 function atSummary(seed = 4) {
   const s = new Session(cfg, createRng(seed), CITIES);
   const n = s.problemsInRound;
-  for (let i = 0; i < n; i++) { i === 0 ? s.timeout() : s.submit(s.problem.answer.text, 0); s.advance(); }
+  for (let i = 0; i < n; i++) { i === 0 ? s.timeout() : s.choose(s.problem.answer.text, 0); s.advance(); }
   return s;
 }
 let root: HTMLElement;
@@ -35,7 +35,7 @@ test('round summary uses the current round', () => {
   const s = atSummary();
   s.advance(); s.answerCity(s.city.id); s.advance();
   const n = s.problemsInRound;
-  for (let i = 0; i < n; i++) { s.submit(s.problem.answer.text, 15000); s.advance(); }
+  for (let i = 0; i < n; i++) { s.choose(s.problem.answer.text, 15000); s.advance(); }
   renderRoundSummary(root, s, () => {});
   expect(root.textContent).toContain('סיכום סבב 2'); expect(root.textContent).toContain(`${n} מתוך ${n}`);
 });

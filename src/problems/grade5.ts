@@ -112,7 +112,7 @@ const toDecimal = (pool: (rng: Rng) => [number, number], mixed: boolean): TopicG
   // Common slips: decimal point misplaced, or the digits of the fraction read as a decimal.
   return decProblem('g5.to-decimal', text, h, [
     h * 10, h / 10, h + 10, h - 10, d < 10 ? d * 10 : d, whole * 100 + n * 10 + d,
-  ], true);
+  ]);
 };
 const halvesTenths = (rng: Rng): [number, number] => (rng() < 0.4 ? [1, 2] : [randInt(rng, 1, 9), 10]);
 const quartersFifths = (rng: Rng): [number, number] => (rng() < 0.4 ? [pick(rng, [1, 3]), 4] : [randInt(rng, 1, 4), 5]);

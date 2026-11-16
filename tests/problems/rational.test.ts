@@ -1,4 +1,4 @@
-import { rat, add, sub, mul, div, eq, intAnswer, fractionAnswer, decimalAnswer, parseInput } from '../../src/problems/rational';
+import { rat, add, sub, mul, div, eq, intAnswer, fractionAnswer, decimalAnswer } from '../../src/problems/rational';
 
 test('arithmetic reduces', () => {
   expect(add(rat(1, 4), rat(1, 4))).toEqual({ n: 1, d: 2 });
@@ -23,17 +23,4 @@ test('formatting', () => {
   expect(decimalAnswer(rat(1, 20)).text).toBe('0.05');
   expect(decimalAnswer(rat(3)).text).toBe('3');
   expect(() => decimalAnswer(rat(1, 3))).toThrow();
-});
-test('parseInput accepts the supported forms', () => {
-  expect(parseInput('12')).toEqual({ value: rat(12), kind: 'int' });
-  expect(parseInput('007')).toEqual({ value: rat(7), kind: 'int' });
-  expect(parseInput('2.5')).toEqual({ value: rat(5, 2), kind: 'decimal' });
-  expect(parseInput('1,5')).toEqual({ value: rat(3, 2), kind: 'decimal' });
-  expect(parseInput('6/8')).toEqual({ value: rat(3, 4), kind: 'fraction' });
-  expect(parseInput('1 1/2')).toEqual({ value: rat(3, 2), kind: 'fraction' });
-  expect(parseInput('1  1/2')).toEqual({ value: rat(3, 2), kind: 'fraction' });
-});
-test('parseInput rejects bad input without throwing', () => {
-  for (const s of ['', ' ', '3/0', '5/', '/5', '1.2.3', '1/2/3', 'abc', '-4', '1.234', '123456789'])
-    expect(parseInput(s)).toBeNull();
 });

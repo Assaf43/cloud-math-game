@@ -6,7 +6,6 @@ export interface TopicProblem {
   topic: string;
   answer: Answer;
   wrong: Rational[];           // common-error values for this topic
-  strictKind?: boolean;
 }
 export type TopicGenerator = (rng: Rng) => TopicProblem;
 export type TopicTable = Record<Difficulty, TopicGenerator[]>;
@@ -27,12 +26,11 @@ export function fracProblem(topic: string, text: string, value: Rational, wrong:
 }
 
 /** Problem whose answer is a decimal given in hundredths. Wrong values are hundredths too (non-integers and negatives are dropped). */
-export function decProblem(topic: string, text: string, hundredths: number, wrongHundredths: number[], strictKind = false): TopicProblem {
+export function decProblem(topic: string, text: string, hundredths: number, wrongHundredths: number[]): TopicProblem {
   return {
     text,
     topic,
     answer: decimalAnswer(rat(hundredths, 100)),
     wrong: wrongHundredths.filter(w => Number.isInteger(w) && w >= 0).map(w => rat(w, 100)),
-    ...(strictKind ? { strictKind: true } : {}),
   };
 }

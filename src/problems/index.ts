@@ -17,6 +17,5 @@ export function generateProblem(grade: Grade, difficulty: Difficulty, rng: Rng):
     topic: t.topic,
     answer: t.answer,
     choices: buildChoices(t.answer, t.wrong, choiceCount(difficulty), rng),
-    strictKind: t.strictKind ?? false,
   };
 }

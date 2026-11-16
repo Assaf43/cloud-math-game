@@ -1,6 +1,4 @@
-import type { Answer, AnswerKind, Rational } from '../types';
-
-const MAX_INPUT_LENGTH = 8;
+import type { Answer, Rational } from '../types';
 
 export function gcd(a: number, b: number): number {
   while (b) [a, b] = [b, a % b];
@@ -42,25 +40,4 @@ export function decimalAnswer(r: Rational): Answer {
   const whole = Math.floor(hundredths / 100);
   const frac = String(hundredths % 100).padStart(2, '0').replace(/0+$/, '');
   return { value: r, kind: 'decimal', text: frac ? `${whole}.${frac}` : String(whole) };
-}
-
-export function parseInput(input: string): { value: Rational; kind: AnswerKind } | null {
-  const s = input.trim();
-  if (s.length === 0 || s.length > MAX_INPUT_LENGTH) return null;
-  let m: RegExpMatchArray | null;
-  if ((m = s.match(/^(\d+)$/))) return { value: rat(parseInt(m[1], 10)), kind: 'int' };
-  if ((m = s.match(/^(\d+)[.,](\d{1,2})$/))) {
-    const hundredths = parseInt(m[1], 10) * 100 + parseInt(m[2].padEnd(2, '0'), 10);
-    return { value: rat(hundredths, 100), kind: 'decimal' };
-  }
-  if ((m = s.match(/^(\d+)\/(\d+)$/))) {
-    const d = parseInt(m[2], 10);
-    return d === 0 ? null : { value: rat(parseInt(m[1], 10), d), kind: 'fraction' };
-  }
-  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) {
-    const d = parseInt(m[3], 10);
-    if (d === 0) return null;
-    return { value: rat(parseInt(m[1], 10) * d + parseInt(m[2], 10), d), kind: 'fraction' };
-  }
-  return null;
 }

@@ -14,7 +14,7 @@ function finished(config: GameConfig = cfg, seed = 6) {
   const s = new Session(config, createRng(seed), CITIES);
   for (let r = 0; r < config.rounds; r++) {
     const n = s.problemsInRound;
-    for (let i = 0; i < n; i++) { i === 0 ? s.timeout() : s.submit(s.problem.answer.text, 3000); s.advance(); }
+    for (let i = 0; i < n; i++) { i === 0 ? s.timeout() : s.choose(s.problem.answer.text, 3000); s.advance(); }
     s.advance(); s.answerCity(s.city.id); s.advance();
   }
   return s;

@@ -4,7 +4,6 @@ import type { GameAudio } from '../audio/audio';
 import { SceneView } from '../scene/sceneView';
 import { makeLane, slotLayout } from '../scene/clouds';
 import { timeOfDay } from '../scene/timeOfDay';
-import { Keypad } from './keypad';
 
 export interface GameScreenDeps {
   audio: Pick<GameAudio, 'playSuccess' | 'pauseMusic' | 'resumeMusic' | 'setMuted' | 'muted'>;
@@ -17,7 +16,6 @@ export interface GameScreenDeps {
 }
 
 const REVEAL_MS = 1500;
-const MAX_INPUT = 8;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -26,28 +24,10 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   return node;
 }
 
-const HEBREW_LETTER = /[֐-׿]/;
-
-function mapKey(e: KeyboardEvent): string | null {
-  if (e.ctrlKey || e.metaKey || e.altKey) return null;
-  if (/^[0-9]$/.test(e.key)) return e.key;
-  // Israeli keyboard in Hebrew mode: the key labelled "/" produces ".", and the "." and "," keys produce letters.
-  // Go by the physical key so the labels the child sees on the keys are what gets typed.
-  if (e.code === 'Slash' && e.key === '.') return '/';
-  if ((e.code === 'Period' || e.code === 'Comma') && HEBREW_LETTER.test(e.key)) return '.';
-  if (e.code === 'NumpadDivide') return '/';
-  if (e.code === 'NumpadDecimal') return '.';
-  switch (e.key) {
-    case '/': return '/';
-    case '.': case ',': return '.';
-    case ' ': return 'space';
-    case 'Backspace': return 'backspace';
-    case 'Enter': return 'enter';
-    default: return null;
-  }
-}
-
-/** One round of play: weather, problems, typing, timer, pause. */
+/**
+ * One round of play: weather, problems, timer, pause. The player answers by tapping (or clicking) the cloud-hidden
+ * answer they think is right. A cloud on top of an answer blocks the tap, so only what is visible can be chosen.
+ */
 export class GameScreen {
   private readonly root: HTMLElement;
   private readonly session: Session;
@@ -62,14 +42,12 @@ export class GameScreen {
   private readonly pauseBtn = el('button', 'pause-btn', '⏸');
   private readonly sceneRoot = el('div', 'game-sky');
   private readonly problemEl = el('div', 'problem');
-  private readonly display = el('div', 'answer-display');
   private readonly timerBar = el('div', 'timer-bar');
   private readonly pauseOverlay = el('div', 'overlay pause-overlay');
   private readonly resumeBtn = el('button', 'primary', 'המשך');
   private readonly roundCard = el('div', 'overlay round-card');
   private readonly scene: SceneView;
 
-  private input = '';
   private startedAt = 0;
   private pausedAt: number | null = null;
   private pausedTotal = 0;
@@ -80,14 +58,6 @@ export class GameScreen {
   private destroyed = false;
   private started = false;
 
-  private readonly onKeyDown = (e: KeyboardEvent) => {
-    const key = mapKey(e);
-    if (key === null || this.destroyed) return;
-    if (this.pausedAt !== null) return;                                   // paused: let Enter/Space press the focused "המשך"
-    if ((key === 'enter' || key === 'space') && e.target instanceof HTMLButtonElement) return;   // a focused button keeps its own keys
-    e.preventDefault();
-    this.handleKey(key);
-  };
   private readonly onVisibility = () => { if (document.hidden) this.pause(); };
 
   constructor(root: HTMLElement, session: Session, deps: GameScreenDeps) {
@@ -95,6 +65,7 @@ export class GameScreen {
     this.session = session;
     this.deps = deps;
     this.scene = new SceneView(this.sceneRoot);
+    this.scene.onPick = text => this.choose(text);
     this.build();
   }
 
@@ -112,7 +83,6 @@ export class GameScreen {
       this.roundCard.hidden = true;
       if (this.destroyed) return;
     }
-    document.addEventListener('keydown', this.onKeyDown);
     document.addEventListener('visibilitychange', this.onVisibility);
     this.started = true;
     this.beginProblem();
@@ -145,13 +115,12 @@ export class GameScreen {
     this.deps.audio.resumeMusic();
     this.game.classList.remove('is-paused');
     this.pauseOverlay.hidden = true;
-    this.resumeBtn.blur();                                               // so a later space/Enter cannot press it again
+    this.resumeBtn.blur();
     if (this.session.phase === 'reveal') this.armReveal(this.revealRemaining);
   }
 
   destroy(): void {
     this.destroyed = true;
-    document.removeEventListener('keydown', this.onKeyDown);
     document.removeEventListener('visibilitychange', this.onVisibility);
     if (this.frameId !== null) cancelAnimationFrame(this.frameId);
     if (this.revealTimer !== null) clearTimeout(this.revealTimer);
@@ -173,11 +142,8 @@ export class GameScreen {
     status.append(this.statusName, this.statusRound, this.statusProblem, this.statusScore, this.muteBtn, this.pauseBtn);
 
     this.problemEl.dir = 'auto';
-    this.display.setAttribute('aria-live', 'polite');
     const timer = el('div', 'timer');
     timer.append(this.timerBar);
-    const answerRow = el('div', 'answer-row');
-    answerRow.append(this.display, timer);
 
     this.pauseOverlay.hidden = true;
     this.pauseOverlay.append(el('p', 'overlay-title', 'המשחק מושהה'));
@@ -186,12 +152,7 @@ export class GameScreen {
     this.pauseOverlay.append(this.resumeBtn);
     this.roundCard.hidden = true;
 
-    this.game.append(status, this.sceneRoot, this.problemEl, answerRow);
-    if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
-      new Keypad(this.game, key => { if (!this.destroyed) this.handleKey(key); });
-      this.game.classList.add('has-keypad');             // CSS hook for the landscape layout (works without :has())
-    }
-    this.game.append(this.pauseOverlay, this.roundCard);
+    this.game.append(status, this.sceneRoot, this.problemEl, timer, this.pauseOverlay, this.roundCard);
     this.root.replaceChildren(this.game);
     this.updateStatus();
   }
@@ -200,9 +161,8 @@ export class GameScreen {
     const next = !this.deps.audio.muted;
     this.deps.audio.setMuted(next);
     this.deps.onMuteChange?.(next);
-    this.muteBtn.setAttribute('aria-pressed', String(next));
-    this.muteBtn.textContent = next ? '🔇' : '🔊';
-    this.muteBtn.blur();                                                 // hand focus back: typing a space must not toggle mute again
+    this.renderMute();
+    this.muteBtn.blur();                                                 // hand focus back to the page
   }
 
   private renderMute(): void {
@@ -221,9 +181,6 @@ export class GameScreen {
   // ---- problem flow ----------------------------------------------------------------
   private beginProblem(): void {
     const { problem } = this.session;
-    this.input = '';
-    this.renderInput();
-    this.display.classList.remove('is-success');
     this.problemEl.textContent = problem.text;
     const slots = slotLayout(problem.choices.length as 4 | 5 | 6);
     this.scene.setAnswers(problem.choices, slots, slots.map(slot => makeLane(slot, this.deps.rng)));
@@ -259,40 +216,17 @@ export class GameScreen {
     }
   }
 
-  private handleKey(key: string): void {
-    if (!this.started || this.pausedAt !== null || this.session.phase !== 'problem') return;
-    switch (key) {
-      case 'backspace': this.input = this.input.slice(0, -1); break;
-      case 'enter': this.submit(); return;
-      case 'space': if (this.input.length > 0 && this.input.length < MAX_INPUT) this.input += ' '; break;
-      default: if (this.input.length < MAX_INPUT) this.input += key;
-    }
-    this.renderInput();
-  }
-
-  private renderInput(): void {
-    this.display.textContent = this.input;
-  }
-
-  private submit(): void {
-    if (this.input.trim() === '') return;
-    const result = this.session.submit(this.input, Math.max(0, this.elapsed()));
-    if (result === 'invalid') {
-      this.input = '';
-      this.renderInput();
-      this.display.classList.remove('shake');
-      void this.display.offsetWidth;                // restart the animation
-      this.display.classList.add('shake');
-      return;
-    }
-    if (result === 'correct') {
-      this.deps.audio.playSuccess();
-      this.display.classList.add('is-success');
-    }
+  /** The player tapped an answer. One attempt: correct scores, wrong does not; neither makes a sound but the success chime. */
+  private choose(text: string): void {
+    if (this.destroyed || !this.started || this.pausedAt !== null || this.session.phase !== 'problem') return;
+    const result = this.session.choose(text, Math.max(0, this.elapsed()));
+    if (result === 'invalid') return;
+    if (result === 'correct') this.deps.audio.playSuccess();
+    else this.scene.markWrong(text);
     this.afterResult();
   }
 
-  /** After a correct, wrong or timed-out problem: show the answer, then move on. Wrong/timeout is visual only. */
+  /** After a correct, wrong or timed-out problem: show the answer, then move on. */
   private afterResult(): void {
     this.scene.highlight(this.session.problem.answer.text);
     this.updateStatus();

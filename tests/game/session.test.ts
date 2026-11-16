@@ -29,51 +29,36 @@ test('cities never repeat within a game', () => {
 });
 test('correct answer scores and moves to reveal', () => {
   const s = new Session(cfg, createRng(1), CITIES);
-  expect(s.submit(s.problem.answer.text, 15000)).toBe('correct');
+  expect(s.choose(s.problem.answer.text, 15000)).toBe('correct');
   expect(s.phase).toBe('reveal'); expect(s.totalScore).toBe(150); expect(s.lastResult).toBe('correct');
 });
-test('typing a wrong on-screen choice uses the attempt and scores 0', () => {
+test('tapping a wrong on-screen choice uses the attempt and scores 0', () => {
   const s = new Session(cfg, createRng(1), CITIES);
   const wrong = s.problem.choices.find(c => c.text !== s.problem.answer.text)!;
-  expect(s.submit(wrong.text, 1000)).toBe('wrong'); expect(s.phase).toBe('reveal'); expect(s.totalScore).toBe(0);
+  expect(s.choose(wrong.text, 1000)).toBe('wrong'); expect(s.phase).toBe('reveal'); expect(s.totalScore).toBe(0);
   expect(s.lastResult).toBe('wrong');
 });
-test('input matching no choice is invalid and keeps the attempt', () => {
+test('tapping something that is not an answer on screen is invalid and keeps the attempt', () => {
   const s = new Session(cfg, createRng(1), CITIES);
-  expect(s.submit('999999', 1000)).toBe('invalid'); expect(s.submit('abc', 1000)).toBe('invalid');
-  expect(s.phase).toBe('problem'); expect(s.lastResult).toBeNull();
+  expect(s.choose('999999', 1000)).toBe('invalid'); expect(s.choose('', 1000)).toBe('invalid');
+  expect(s.phase).toBe('problem'); expect(s.lastResult).toBeNull(); expect(s.totalScore).toBe(0);
 });
-test('strictKind rejects an equal value typed in the wrong form', () => {
-  const advanced: GameConfig = { ...cfg, difficulty: 'advanced' };
-  let found: Session | null = null, other: Session | null = null;
-  for (let seed = 0; seed < 5000 && !found; seed++) {
-    const s = new Session(advanced, createRng(seed), CITIES);
-    if (s.problem.topic === 'g5.to-decimal' && s.problem.answer.text === '0.25') {
-      found = s; other = new Session(advanced, createRng(seed), CITIES);
+test('every on-screen choice can be tapped; only the right one scores', () => {
+  for (let seed = 0; seed < 30; seed++) {
+    const probe = new Session(cfg, createRng(seed), CITIES);
+    for (const c of probe.problem.choices) {
+      const s = new Session(cfg, createRng(seed), CITIES);
+      const right = c.text === s.problem.answer.text;
+      expect(s.choose(c.text, 3000)).toBe(right ? 'correct' : 'wrong');
+      expect(s.totalScore).toBe(right ? 190 : 0);
     }
   }
-  expect(found).not.toBeNull();
-  expect(found!.problem.strictKind).toBe(true);
-  expect(found!.submit('1/4', 1000)).toBe('invalid');
-  expect(found!.phase).toBe('problem');
-  expect(found!.submit('0.25', 1000)).toBe('correct');
-  expect(other!.submit('0,25', 1000)).toBe('correct');
-});
-test('an unreduced equivalent fraction is accepted when strictKind is false', () => {
-  const advanced: GameConfig = { ...cfg, difficulty: 'advanced' };
-  let s: Session | null = null;
-  for (let seed = 0; seed < 5000 && !s; seed++) {
-    const t = new Session(advanced, createRng(seed), CITIES);
-    if (t.problem.answer.text === '3/4' && !t.problem.strictKind) s = t;
-  }
-  expect(s).not.toBeNull();
-  expect(s!.submit('6/8', 1000)).toBe('correct');
 });
 test('full game walk-through reaches finished with correct totals', () => {
   const s = new Session(cfg, createRng(7), CITIES);
   for (let r = 0; r < 2; r++) {
     const n = s.problemsInRound;
-    for (let i = 0; i < n; i++) { i === 0 ? s.timeout() : s.submit(s.problem.answer.text, 0); s.advance(); }
+    for (let i = 0; i < n; i++) { i === 0 ? s.timeout() : s.choose(s.problem.answer.text, 0); s.advance(); }
     expect(s.phase).toBe('roundSummary');
     expect(s.rounds[r]).toMatchObject({ correct: n - 1, total: n, points: (n - 1) * 200, cityCorrect: null });
     expect(s.rounds[r].avgAnswerMs).toBe(Math.round(30000 / n));
@@ -100,7 +85,7 @@ test('illegal calls throw', () => {
   const s = new Session(cfg, createRng(1), CITIES);
   expect(() => s.advance()).toThrow(); expect(() => s.answerCity('haifa')).toThrow();
   s.timeout();
-  expect(() => s.timeout()).toThrow(); expect(() => s.submit('1', 0)).toThrow();
+  expect(() => s.timeout()).toThrow(); expect(() => s.choose('1', 0)).toThrow();
 });
 test('advance from the city bonus needs an answer first', () => {
   const s = new Session(cfg, createRng(1), CITIES);

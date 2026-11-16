@@ -31,16 +31,14 @@ test('g5.frac-add wrong list includes numerators added, denominators added', () 
   expect(seen).toBeGreaterThan(0);
 });
 
-test('g5.to-decimal is strictKind with a decimal answer', () => {
+test('g5.to-decimal has a decimal answer', () => {
   let seen = 0;
   for (const { p } of all()) {
     if (p.topic !== 'g5.to-decimal') continue;
-    expect(p.strictKind).toBe(true);
     expect(p.answer.kind).toBe('decimal');
     seen++;
   }
   expect(seen).toBeGreaterThan(0);
-  for (const { p } of all()) if (p.topic !== 'g5.to-decimal') expect(p.strictKind).toBeFalsy();
 });
 
 test('g5.expand fills the missing number correctly', () => {

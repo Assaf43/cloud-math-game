@@ -1,11 +1,11 @@
 import type { City, GameConfig, Problem, Rng } from '../types';
 import { randInt, shuffle } from '../rng';
 import { generateProblem } from '../problems';
-import { eq, parseInput } from '../problems/rational';
+import { eq } from '../problems/rational';
 import { CITY_BONUS, problemPoints } from './scoring';
 
 export type Phase = 'problem' | 'reveal' | 'roundSummary' | 'cityBonus' | 'finished';
-export type SubmitResult = 'invalid' | 'correct' | 'wrong';
+export type ChooseResult = 'invalid' | 'correct' | 'wrong';
 export interface RoundStats {
   correct: number;
   total: number;
@@ -60,15 +60,12 @@ export class Session {
     return this._answered === 0 ? 0 : Math.round(this._mathPoints / this._answered);
   }
 
-  submit(input: string, elapsedMs: number): SubmitResult {
-    this.expect('problem', 'submit');
-    const parsed = parseInput(input);
-    if (!parsed) return 'invalid';
+  /** The player tapped the answer showing `answerText`. One attempt: right or wrong ends the problem. */
+  choose(answerText: string, elapsedMs: number): ChooseResult {
+    this.expect('problem', 'choose');
     const p = this._problem;
-    // A typed value must equal one of the on-screen choices. With strictKind a decimal choice
-    // cannot be answered with a fraction (and vice versa for the other kinds).
-    const hit = p.choices.find(c => eq(c.value, parsed.value) && (!p.strictKind || c.kind === parsed.kind || (c.kind === 'decimal' && parsed.kind === 'int')));
-    if (!hit) return 'invalid';
+    const hit = p.choices.find(c => c.text === answerText);
+    if (!hit) return 'invalid';                         // not an answer on screen: the attempt is kept
     const limitMs = this.config.secondsPerProblem * 1000;
     const correct = eq(hit.value, p.answer.value);
     this.finishProblem(correct ? 'correct' : 'wrong', Math.min(Math.max(elapsedMs, 0), limitMs));

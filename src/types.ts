@@ -9,7 +9,6 @@ export interface Problem {
   topic: string;           // topic id, e.g. "g3.times-table"
   answer: Answer;
   choices: Answer[];       // shuffled, includes answer
-  strictKind: boolean;     // true: typed input must be the same kind as answer
 }
 export interface GameConfig {
   name: string; age: number; grade: Grade; difficulty: Difficulty;

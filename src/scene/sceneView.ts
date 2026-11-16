@@ -48,6 +48,8 @@ export class SceneView {
   private lanes: Lane[] = [];
   private cloudEls: HTMLElement[][] = [];
 
+  /** Called with the text of the answer the player taps (mouse click or finger). */
+  onPick: ((answerText: string) => void) | null = null;
   private readonly root: HTMLElement;
 
   constructor(root: HTMLElement) {
@@ -72,7 +74,9 @@ export class SceneView {
     this.root.style.setProperty('--ah', String(rowHeight));
     choices.forEach((choice, i) => {
       const slot = slots[i];
-      const a = el('div', 'answer');
+      const a = el('button', 'answer');
+      a.type = 'button';
+      a.addEventListener('click', () => this.onPick?.(choice.text));
       a.dataset.answer = choice.text;
       a.style.left = `${slot.xPct}%`;
       a.style.top = `${slot.yPct}%`;
@@ -104,6 +108,12 @@ export class SceneView {
         if (k < lefts.length) { c.hidden = false; c.style.left = `${lefts[k]}%`; } else c.hidden = true;
       });
     });
+  }
+
+  /** Marks the answer the player tapped when it was wrong. */
+  markWrong(answerText: string): void {
+    for (const a of this.answersLayer.querySelectorAll<HTMLElement>('[data-answer]'))
+      if (a.dataset.answer === answerText) a.classList.add('is-wrong');
   }
 
   /** Marks the correct answer; it is drawn above the clouds so it is readable. */

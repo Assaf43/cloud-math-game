@@ -93,3 +93,27 @@ test('the CSS bump overhang matches BUMP_OVERHANG_RATIO', () => {
   const after = css.match(/\.cloud::after\s*\{[^}]*top:\s*-(\d+(?:\.\d+)?)%/);
   expect(+after![1] / 100).toBeLessThanOrEqual(BUMP_OVERHANG_RATIO + 1e-9);
 });
+
+test('tapping an answer reports its text; markWrong marks it; answers are buttons', () => {
+  const { root, v, slots, lanes } = setup();
+  const picked: string[] = [];
+  v.onPick = text => picked.push(text);
+  v.setAnswers([fractionAnswer(rat(3, 4)), intAnswer(2), intAnswer(3), decimalAnswer(rat(5, 2))], slots, lanes);
+  const el = root.querySelector<HTMLButtonElement>('[data-answer="3/4"]')!;
+  expect(el.tagName).toBe('BUTTON'); expect(el.type).toBe('button');
+  el.click(); root.querySelector<HTMLElement>('[data-answer="2.5"]')!.click();
+  expect(picked).toEqual(['3/4', '2.5']);
+  v.markWrong('2'); expect(root.querySelector('[data-answer="2"]')!.classList.contains('is-wrong')).toBe(true);
+});
+
+test('clouds block taps on the answers they cover (CSS), puffs and layers do not', () => {
+  const css = readFileSync('src/styles.css', 'utf8');
+  expect(css).toMatch(/\.cloud\s*\{[^}]*pointer-events:\s*auto/);
+  expect(css).toMatch(/\.scene-layer\s*,?[^{]*\{[^}]*pointer-events:\s*none/);
+});
+
+test('taps with no handler set do nothing and do not throw', () => {
+  const { root, v, slots, lanes } = setup();
+  v.setAnswers([1, 2, 3, 4].map(intAnswer), slots, lanes);
+  expect(() => root.querySelector<HTMLElement>('[data-answer="1"]')!.click()).not.toThrow();
+});

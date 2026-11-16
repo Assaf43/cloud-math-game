@@ -92,6 +92,12 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   border-radius: 999px;
   background: rgba(255, 255, 255, .94);
   color: var(--ink);
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   font-weight: 800;
   font-size: clamp(11px, calc(var(--ah, 8.8) * .6cqh), 40px);
   line-height: 1;
@@ -103,11 +109,14 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 .answer .frac { display: inline-flex; flex-direction: column; align-items: center; font-size: .74em; line-height: 1.05; }
 .answer .frac .num { padding: 0 .2em; border-bottom: .09em solid currentColor; }
 .answer .whole { font-size: 1em; }
+.answer:hover { transform: scale(1.05); }
+.answer.is-wrong { background: #ffd0d0; box-shadow: 0 0 0 3px var(--bad), 0 2px 6px rgba(0, 0, 0, .25); }
 .answer.is-correct { z-index: 4; background: #b6f2c1; box-shadow: 0 0 0 3px var(--good), 0 4px 12px rgba(0, 0, 0, .3); transform: scale(1.1); }
 
 .cloud {
   position: absolute;
   z-index: 3;
+  pointer-events: auto;                   /* a cloud blocks taps on the answer under it */
   background: var(--cloud);
   border-radius: 999px;
   box-shadow: 0 3px 6px rgba(0, 0, 0, .18);
@@ -159,42 +168,14 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 .game-sky { flex: 1 1 0; min-height: 36%; position: relative; }
 .problem {
   flex: none; padding: 4px 12px; text-align: center; font-weight: 900; color: var(--ink);
-  font-size: clamp(1.2rem, 5.2dvh, 3.2rem); line-height: 1.15; background: #fff;
+  font-size: clamp(1.5rem, 6.2dvh, 3.4rem); line-height: 1.15; background: #fff;
 }
-.answer-row { flex: none; display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #fff; }
-.answer-display {
-  flex: 0 0 min(46%, 11em); min-height: 1.5em; padding: 2px 10px; direction: ltr; text-align: center; white-space: pre;
-  font-size: clamp(1.4rem, 5dvh, 2.4rem); font-weight: 800; border: 3px solid #9fb8dd; border-radius: 12px; background: #f6f9ff;
-}
-.answer-display::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-inline-start: 2px; vertical-align: -.12em; background: var(--accent); animation: caret 1s steps(1) infinite; }
-@keyframes caret { 50% { opacity: 0; } }
-.answer-display.is-success { border-color: var(--good); background: #e6f9ec; }
-.answer-display.shake { animation: shake .35s; border-color: var(--bad); }
-@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
-.timer { flex: 1; height: 16px; border-radius: 8px; background: #dbe6f5; overflow: hidden; direction: ltr; }
+
+.timer { flex: none; height: 14px; margin: 6px 12px calc(10px + env(safe-area-inset-bottom)); border-radius: 7px; background: #dbe6f5; overflow: hidden; direction: ltr; }
 .timer-bar { height: 100%; width: 100%; background: var(--good); }
 .timer-bar.is-low { background: var(--bad); }
 
-.keypad { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); background: #cfdcf0; }
-.key {
-  height: clamp(30px, 5.4dvh, 50px); border: 0; border-radius: 10px; background: #fff; color: var(--ink);
-  font-size: clamp(1.1rem, 3.6dvh, 1.6rem); font-weight: 800; touch-action: manipulation; user-select: none; -webkit-user-select: none; cursor: pointer;
-  box-shadow: 0 2px 0 #9fb2d0;
-}
-.key:active { transform: translateY(2px); box-shadow: none; }
-.key-enter { grid-column: span 2; background: var(--accent); color: #fff; box-shadow: 0 2px 0 #1d5fb4; }
-/* Landscape phones/tablets: the keypad moves beside the game so the sky keeps its height */
-@media (min-aspect-ratio: 1/1) and (max-height: 560px) {
-  .game.has-keypad { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 30%, 280px); grid-template-rows: auto minmax(0, 1fr) auto auto; }
-  .game.has-keypad > .status { grid-column: 1 / -1; }
-  .game.has-keypad > .game-sky { grid-column: 1; grid-row: 2; min-height: 0; }
-  .game.has-keypad > .problem { grid-column: 1; grid-row: 3; }
-  .game.has-keypad > .answer-row { grid-column: 1; grid-row: 4; }
-  .game.has-keypad > .keypad { grid-column: 2; grid-row: 2 / 5; grid-auto-rows: 1fr; padding-bottom: 6px; }
-  .game.has-keypad .key { height: auto; font-size: clamp(1rem, 6dvh, 1.5rem); }
-}
-
-.game.is-paused .game-sky, .game.is-paused .problem, .game.is-paused .answer-row { visibility: hidden; }
+.game.is-paused .game-sky, .game.is-paused .problem { visibility: hidden; }
 .overlay {
   position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   background: rgba(15, 25, 60, .82); color: #fff;
