@@ -28,8 +28,8 @@ const fracMul = (shape: 'whole' | 'frac' | 'mixed'): TopicGenerator => bounded(r
       rat(f.a, f.d), rat(w * f.a, w + f.d), rat(w + f.a, f.d),
     ]);
   }
-  const x = shape === 'mixed' ? properFrac(rng, 2, 6, randInt(rng, 1, 3)) : properFrac(rng, 2, 9);
-  const y = properFrac(rng, 2, shape === 'mixed' ? 6 : 9);
+  const x = shape === 'mixed' ? properFrac(rng, 2, 5, randInt(rng, 1, 2)) : properFrac(rng, 2, 6);
+  const y = properFrac(rng, 2, shape === 'mixed' ? 5 : 6);
   const nx = fracNum(x), ny = fracNum(y);
   return fracProblem('g6.frac-mul', `${fracText(x)} × ${fracText(y)}`, mul(fracValue(x), fracValue(y)), [
     rat(nx * ny, x.d + y.d), rat(nx + ny, x.d * y.d), rat(nx * ny, Math.max(x.d, y.d)),
@@ -48,8 +48,8 @@ const fracDiv = (shape: 'smallDivisions' | 'frac' | 'mixed'): TopicGenerator => 
     const w = randInt(rng, 2, 9), d = randInt(rng, 2, 9);
     return fracProblem('g6.frac-div', `${w} ÷ 1/${d}`, rat(w * d), [rat(w, d), rat(w + d), rat(w * d + d), rat(w * d - d)]);
   }
-  const x = shape === 'mixed' ? properFrac(rng, 2, 6, randInt(rng, 1, 3)) : properFrac(rng, 2, 9);
-  const y = properFrac(rng, 2, shape === 'mixed' ? 6 : 9);
+  const x = shape === 'mixed' ? properFrac(rng, 2, 5, randInt(rng, 1, 2)) : properFrac(rng, 2, 6);
+  const y = properFrac(rng, 2, shape === 'mixed' ? 5 : 6);
   return fracProblem('g6.frac-div', `${fracText(x)} ÷ ${fracText(y)}`, div(fracValue(x), fracValue(y)), [
     mul(fracValue(x), fracValue(y)), div(fracValue(y), fracValue(x)), rat(fracNum(x) * y.d, x.d * fracNum(y) + 1),
   ]);
@@ -78,7 +78,7 @@ const decMulDigit: TopicGenerator = bounded(rng => {
   return decProblem('g6.dec-mul', `${fmt(x, 1)} × ${d}`, h, misplaced(h));
 });
 const decMulDecimals: TopicGenerator = bounded(rng => {
-  const x = randInt(rng, 2, 99), y = randInt(rng, 2, 99);             // tenths x tenths -> hundredths
+  const x = randInt(rng, 2, 60), y = randInt(rng, 2, 9);               // tenths x one tenth -> hundredths (3.4 x 0.7)
   const h = x * y;
   return decProblem('g6.dec-mul', `${fmt(x, 1)} × ${fmt(y, 1)}`, h, [h * 10, h / 10, h + 10, h - 10, x * y * 100 / 10]);
 });
@@ -112,7 +112,7 @@ const percentForward = (percents: number[], maxK: number): TopicGenerator => bou
 const percentReverse: TopicGenerator = bounded(rng => {
   const p = pick(rng, [10, 20, 25, 30, 40, 50, 60, 75]);
   const step = 100 / gcd(p, 100);
-  const n = step * randInt(rng, 1, Math.max(1, Math.floor(400 / step)));
+  const n = step * randInt(rng, 1, Math.max(1, Math.floor(200 / step)));
   const part = (p * n) / 100;
   return intProblem('g6.percent', `${p}% מהמספר הם ${part}. מה המספר?`, n, [n + part, n - part, part * 10, part * 2, 100 - part]);
 });
@@ -123,7 +123,7 @@ const ratio = (aMax: number, bMax: number, kind: 'unit' | 'large' | 'either'): T
   if (kind !== 'unit') {
     do { a = randInt(rng, 1, aMax); b = randInt(rng, 1, bMax); } while (a === b);
   }
-  const k = randInt(rng, 2, 12), total = (a + b) * k;
+  const k = randInt(rng, 2, 10), total = (a + b) * k;
   const askSmall = kind === 'either' && rng() < 0.5;
   const part = (askSmall ? Math.min(a, b) : Math.max(a, b)) * k;
   const other = (askSmall ? Math.max(a, b) : Math.min(a, b)) * k;
@@ -138,9 +138,9 @@ export const topics: TopicTable = {
   ],
   advanced: [
     fracMul('frac'), fracDiv('frac'), decMulDigit, decDivDigit,
-    percentForward([5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90], 400), ratio(5, 5, 'large'),
+    percentForward([5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90], 200), ratio(5, 5, 'large'),
   ],
   expert: [
-    fracMul('mixed'), fracDiv('mixed'), decMulDecimals, decDivDecimal, percentReverse, ratio(9, 9, 'either'),
+    fracMul('mixed'), fracDiv('mixed'), decMulDecimals, decDivDecimal, percentReverse, ratio(7, 7, 'either'),
   ],
 };

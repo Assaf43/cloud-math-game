@@ -82,7 +82,7 @@ const orderExpert: TopicGenerator = rng => {
 };
 
 export const topics: TopicTable = {
-  beginner: [addGen(10, 500, 1000), subGen(10, 500), timesTable(2, 5, 2, 10), timesPowers, divTable(2, 5)],
-  advanced: [addGen(100, 5000, 5000), subGen(100, 5000), timesTable(2, 10, 2, 10), timesTensByDigit, divTable(2, 10), divPowers, orderAdvanced],
-  expert: [addGen(1000, 9000, 10000), subGen(1000, 9000), timesTable(6, 9, 6, 9), timesTensByTens, divTensByDigit, orderExpert],
+  beginner: [addGen(10, 90, 100), subGen(10, 100), timesTable(2, 5, 2, 10), timesPowers, divTable(2, 5)],
+  advanced: [addGen(50, 500, 1000), subGen(50, 500), timesTable(2, 10, 2, 10), timesTensByDigit, divTable(2, 10), divPowers, orderAdvanced],
+  expert: [addGen(200, 3000, 5000), subGen(100, 3000), timesTable(6, 9, 6, 9), timesTensByTens, divTensByDigit, orderExpert],
 };

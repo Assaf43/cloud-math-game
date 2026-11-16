@@ -3,20 +3,31 @@ import { pick, randInt } from '../rng';
 import { decProblem, fracProblem, intProblem, type TopicGenerator, type TopicTable } from './topic';
 import { eq, gcd, rat, sub as subR } from './rational';
 
-const digits = (n: number) => [10 ** (n - 1), 10 ** n - 1] as const;
+/*
+ * Children answer in their heads in about 30 seconds, by tapping one of a few answers, so the numbers stay friendly
+ * (the national tests use paper for big multiplications and long division; the game does not):
+ * one-digit factors, then friendly two-digit factors, then two-digit by two-digit; divisors that are easy to work with;
+ * fractions whose common denominator is small; decimals below 10 (below 20 at expert).
+ */
 
 // ---- g5.mul ---------------------------------------------------------------
-const mulGen = (da: number, db: number): TopicGenerator => rng => {
-  const a = randInt(rng, ...digits(da)), b = randInt(rng, ...digits(db));
+const mulWrong = (a: number, b: number): number[] => {
   const p = a * b;
-  return intProblem('g5.mul', `${a} × ${b}`, p, [p + 10, p - 10, p + 100, p - 100, p + a, p - a, p + b, p - b]);
+  return [p + 10, p - 10, p + 100, p - 100, p + a, p - a, p + b, p - b];
 };
+const mulProblem = (a: number, b: number) => intProblem('g5.mul', `${a} × ${b}`, a * b, mulWrong(a, b));
+const mulBeginner: TopicGenerator = rng => mulProblem(randInt(rng, 11, 40), randInt(rng, 2, 9));
+const mulAdvanced: TopicGenerator = rng => mulProblem(randInt(rng, 12, 35), pick(rng, [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 40]));
+const mulExpert: TopicGenerator = rng => mulProblem(randInt(rng, 12, 49), randInt(rng, 11, 29));
 
 // ---- g5.div (two-digit divisor, exact) -------------------------------------
-const divGen = (kind: 'tens' | 'oneDigit' | 'multiDigit'): TopicGenerator => rng => {
-  const d = kind === 'tens' ? randInt(rng, 2, 9) * 10 : randInt(rng, 11, 99);
-  const q = kind === 'multiDigit' ? randInt(rng, 10, 150) : kind === 'oneDigit' ? randInt(rng, 2, 9) : randInt(rng, 2, 30);
-  return intProblem('g5.div', `${d * q} ÷ ${d}`, q, [q + 1, q - 1, q * 10, q + 10, q - 10, d]);
+const divProblem = (d: number, q: number) =>
+  intProblem('g5.div', `${d * q} ÷ ${d}`, q, [q + 1, q - 1, q * 10, q + 10, q - 10, d]);
+const divBeginner: TopicGenerator = rng => divProblem(randInt(rng, 2, 9) * 10, randInt(rng, 2, 15));          // 480 ÷ 20
+const divAdvanced: TopicGenerator = rng => divProblem(pick(rng, [12, 15, 16, 18, 20, 25, 30]), randInt(rng, 2, 9));
+const divExpert: TopicGenerator = rng => {
+  const d = randInt(rng, 11, 35);
+  return divProblem(d, randInt(rng, 5, Math.min(30, Math.floor(1000 / d))));
 };
 
 // ---- g5.frac-add / g5.frac-sub ----------------------------------------------
@@ -31,17 +42,17 @@ const multipleDenoms: Denoms = rng => {
   const d = randInt(rng, 2, 4), big = d * randInt(rng, 2, 3);
   return rng() < 0.5 ? [d, big] : [big, d];
 };
-/** Different denominators up to 12 whose common denominator stays at most 36, so a typed mixed-number answer fits in 8 characters. */
+/** Different denominators from a short list whose common denominator is at most 24. */
 const otherDenoms: Denoms = rng => {
   for (;;) {
-    const d1 = randInt(rng, 2, 12), d2 = randInt(rng, 2, 12);
-    if (d1 !== d2 && (d1 * d2) / gcd(d1, d2) <= 36) return [d1, d2];
+    const d1 = pick(rng, [2, 3, 4, 5, 6, 8, 10, 12]), d2 = pick(rng, [2, 3, 4, 5, 6, 8, 10, 12]);
+    if (d1 !== d2 && (d1 * d2) / gcd(d1, d2) <= 24) return [d1, d2];
   }
 };
 
 const fracGen = (op: 'add' | 'sub', denoms: Denoms, mixed: boolean): TopicGenerator => rng => {
   const make = (d: number): Frac => ({
-    whole: mixed && rng() < 0.5 ? randInt(rng, 1, 3) : 0,
+    whole: mixed && rng() < 0.5 ? randInt(rng, 1, 2) : 0,
     a: randInt(rng, 1, d - 1),
     d,
   });
@@ -79,19 +90,19 @@ const decGen = (op: 'add' | 'sub', make: DecPair): TopicGenerator => rng => {
   const h = op === 'add' ? x.h + y.h : x.h - y.h;
   return decProblem(`g5.dec-${op}`, `${x.text} ${op === 'add' ? '+' : '−'} ${y.text}`, h, decWrong(h));
 };
-const tenths: DecPair = rng => {
-  const a = randInt(rng, 1, 99), b = randInt(rng, 1, 99);
-  return [{ text: fmt(a, 1), h: a * 10 }, { text: fmt(b, 1), h: b * 10 }];
+const tenths = (rng: Rng): Dec => { const a = randInt(rng, 1, 99); return { text: fmt(a, 1), h: a * 10 }; };
+const hundredths = (rng: Rng, lo: number, hi: number): Dec => {
+  let a: number;
+  do { a = randInt(rng, lo, hi); } while (a % 10 === 0);      // always shows two decimal places
+  return { text: fmt(a, 2), h: a };
 };
-const hundredths: DecPair = rng => {
-  const a = randInt(rng, 1, 999), b = randInt(rng, 1, 999);
-  return [{ text: fmt(a, 2), h: a }, { text: fmt(b, 2), h: b }];
+const decBeginner: DecPair = rng => [tenths(rng), tenths(rng)];
+/** One number with tenths, one with hundredths (3.45 + 2.7), both below 10. */
+const decAdvanced: DecPair = rng => {
+  const pair: [Dec, Dec] = [tenths(rng), hundredths(rng, 101, 999)];
+  return rng() < 0.5 ? pair : [pair[1], pair[0]];
 };
-const mixedPlaces: DecPair = rng => {
-  const a = randInt(rng, 10, 999), b = randInt(rng, 0, 999) * 10 + randInt(rng, 1, 9);   // b is never a whole tenth
-  const t: Dec = { text: fmt(a, 1), h: a * 10 }, u: Dec = { text: fmt(b, 2), h: b };
-  return rng() < 0.5 ? [t, u] : [u, t];
-};
+const decExpert: DecPair = rng => [hundredths(rng, 101, 1999), hundredths(rng, 101, 1999)];
 
 // ---- g5.expand ------------------------------------------------------------------
 const expandGen = (fLo: number, fHi: number, bHi: number, allowReduction: boolean): TopicGenerator => rng => {
@@ -104,9 +115,11 @@ const expandGen = (fLo: number, fHi: number, bHi: number, allowReduction: boolea
 };
 
 // ---- g5.to-decimal ----------------------------------------------------------------
-const toDecimal = (pool: (rng: Rng) => [number, number], mixed: boolean): TopicGenerator => rng => {
-  const [n, d] = pool(rng);
-  const whole = mixed && rng() < 0.4 ? randInt(rng, 1, 5) : 0;
+/** A pool yields [numerator, denominator, whole part allowed]. */
+type FracPool = (rng: Rng) => [number, number, boolean];
+const toDecimal = (pool: FracPool): TopicGenerator => rng => {
+  const [n, d, wholeOk] = pool(rng);
+  const whole = wholeOk && rng() < 0.4 ? randInt(rng, 1, 5) : 0;
   const h = ((whole * d + n) * 100) / d;
   const text = `${whole ? `${whole} ` : ''}${n}/${d} = ?`;
   // Common slips: decimal point misplaced, or the digits of the fraction read as a decimal.
@@ -114,21 +127,26 @@ const toDecimal = (pool: (rng: Rng) => [number, number], mixed: boolean): TopicG
     h * 10, h / 10, h + 10, h - 10, d < 10 ? d * 10 : d, whole * 100 + n * 10 + d,
   ]);
 };
-const halvesTenths = (rng: Rng): [number, number] => (rng() < 0.4 ? [1, 2] : [randInt(rng, 1, 9), 10]);
-const quartersFifths = (rng: Rng): [number, number] => (rng() < 0.4 ? [pick(rng, [1, 3]), 4] : [randInt(rng, 1, 4), 5]);
-const twentiethsEtc = (rng: Rng): [number, number] => (rng() < 0.5 ? [randInt(rng, 1, 19), 20] : [randInt(rng, 1, 24), 25]);
+const halvesTenths: FracPool = rng => (rng() < 0.4 ? [1, 2, false] : [randInt(rng, 1, 9), 10, false]);
+const quartersFifths: FracPool = rng => (rng() < 0.4 ? [pick(rng, [1, 3]), 4, false] : [randInt(rng, 1, 4), 5, false]);
+const expertPool: FracPool = rng => {
+  const r = rng();
+  if (r < 0.35) return [randInt(rng, 1, 19), 20, false];
+  if (r < 0.6) return [randInt(rng, 1, 24), 25, false];
+  return quartersFifths(rng).map((x, i) => (i === 2 ? true : x)) as [number, number, boolean];   // 2 3/4 = ?
+};
 
 export const topics: TopicTable = {
   beginner: [
-    mulGen(2, 2), divGen('tens'), fracGen('add', sameDenoms, false), fracGen('sub', sameDenoms, false),
-    decGen('add', tenths), decGen('sub', tenths), expandGen(2, 3, 6, false), toDecimal(halvesTenths, false),
+    mulBeginner, divBeginner, fracGen('add', sameDenoms, false), fracGen('sub', sameDenoms, false),
+    decGen('add', decBeginner), decGen('sub', decBeginner), expandGen(2, 3, 6, false), toDecimal(halvesTenths),
   ],
   advanced: [
-    mulGen(3, 2), divGen('oneDigit'), fracGen('add', multipleDenoms, false), fracGen('sub', multipleDenoms, false),
-    decGen('add', hundredths), decGen('sub', hundredths), expandGen(2, 6, 8, false), toDecimal(quartersFifths, false),
+    mulAdvanced, divAdvanced, fracGen('add', multipleDenoms, false), fracGen('sub', multipleDenoms, false),
+    decGen('add', decAdvanced), decGen('sub', decAdvanced), expandGen(2, 6, 6, false), toDecimal(quartersFifths),
   ],
   expert: [
-    mulGen(3, 3), divGen('multiDigit'), fracGen('add', otherDenoms, true), fracGen('sub', otherDenoms, true),
-    decGen('add', mixedPlaces), decGen('sub', mixedPlaces), expandGen(2, 10, 10, true), toDecimal(twentiethsEtc, true),
+    mulExpert, divExpert, fracGen('add', otherDenoms, true), fracGen('sub', otherDenoms, true),
+    decGen('add', decExpert), decGen('sub', decExpert), expandGen(2, 6, 6, true), toDecimal(expertPool),
   ],
 };

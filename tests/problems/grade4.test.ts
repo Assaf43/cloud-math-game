@@ -16,7 +16,7 @@ test('grade 4 answers are integers and topic ids are g4.*', () => {
 });
 
 test('add and sub results stay within the difficulty bound', () => {
-  const bound = { beginner: 10000, advanced: 100000, expert: 1000000 } as const;
+  const bound = { beginner: 1000, advanced: 10000, expert: 100000 } as const;
   for (const d of ['beginner', 'advanced', 'expert'] as const)
     for (const gen of topics[d])
       for (let seed = 0; seed < 300; seed++) {

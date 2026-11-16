@@ -63,6 +63,9 @@ Curriculum sources:
   only change how the scene looks, never cloud speed or coverage.
 - **No sound for wrong answers or timeouts.** `GameAudio` has no method for them on purpose. The music is soft: sine and
   triangle tones, a low-pass filter and a generated reverb, no square/saw waves.
+- **Mental-math sized numbers.** Children answer in their heads, in about 30 seconds, by tapping one of a few answers, so
+  generators keep numbers friendly (for example no 3-digit multipliers, divisors that are easy to work with, small common
+  denominators). `tests/problems/difficulty.test.ts` holds the caps per grade and level; change them there on purpose.
 - **Player text** (the name) is only ever put on the page with `textContent`.
 - **Weather** comes from Open-Meteo with no key; if the request fails or takes longer than 3 s a random weather is
   used. The credit "Weather data by Open-Meteo.com" is shown on the final screen.
