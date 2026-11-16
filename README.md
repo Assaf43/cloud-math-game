@@ -27,6 +27,14 @@ and sample answers.
 `dist/` to GitHub Pages. In the repository settings set **Pages → Source: GitHub Actions**. The site is fully static
 (`base: './'`), so it also works from any static host.
 
+## Sending the game to someone
+
+- **One file:** `npm run build:single` writes `release/cloud-math-game.html` (about 60 KB, everything inside). Send it by
+  mail or WhatsApp; opening it in Chrome, Edge, Safari or Firefox, on a PC or a phone, runs the game. Scores are kept in
+  that browser on that device. On some phones the file opens inside a preview: open it with the browser instead.
+- **A link:** push to GitHub and the workflow above publishes the game to GitHub Pages; send the page address. On a phone
+  the browser's "Add to Home Screen" gives it an icon.
+
 ## Where things are
 
 | Area | Folder |

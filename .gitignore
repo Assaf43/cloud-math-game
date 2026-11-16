@@ -25,3 +25,4 @@ dist-ssr
 
 # Private design docs (kept outside git)
 docs/
+release/
