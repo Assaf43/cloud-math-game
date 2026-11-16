@@ -58,9 +58,10 @@ export class GameAudio {
         sfx.connect(master);
         this.ctx = ctx; this.master = master; this.music = music; this.sfx = sfx;
         this.nextBarTime = ctx.currentTime + 0.1;
-        this.startTimer();
       }
       if (this.ctx.state === 'suspended') void this.ctx.resume();
+      this.nextBarTime = Math.max(this.nextBarTime, this.ctx.currentTime + 0.1);
+      this.startTimer();                // no-op while already running; restarts music after pauseMusic()
     } catch {
       this.broken = true;
       this.ctx = null;

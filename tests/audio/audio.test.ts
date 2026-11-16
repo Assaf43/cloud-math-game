@@ -108,3 +108,11 @@ test('without AudioContext in the environment the default factory is a no-op', (
   const audio = new GameAudio(false);
   expect(() => { audio.start(); audio.playSuccess(); }).not.toThrow();
 });
+
+test('start() after pauseMusic() brings the music back', () => {
+  const { ctx, audio } = make();
+  audio.start(); audio.pauseMusic();
+  const n = ctx.oscillators.length;
+  ctx.currentTime = 100; audio.start();
+  expect(ctx.oscillators.length).toBeGreaterThan(n);
+});

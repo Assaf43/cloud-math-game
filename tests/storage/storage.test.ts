@@ -83,6 +83,7 @@ test('null backend: reads are empty and writes are no-ops', () => {
   const s = new Storage(null);
   s.saveProfile({ name: 'a', age: 8, grade: 3 }); s.setMuted(true);
   expect(() => s.addScore(score())).not.toThrow();
+  expect(s.addScore(score()).isPersonalBest).toBe(false);
   expect(s.profiles()).toEqual([]); expect(s.topScores()).toEqual([]); expect(s.muted()).toBe(false);
   expect(s.personalBest('נועה', 5, 'beginner')).toBeNull();
 });

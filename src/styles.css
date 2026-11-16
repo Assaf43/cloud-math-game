@@ -193,3 +193,37 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 .overlay-title { margin: 0; font-size: 2rem; font-weight: 900; }
 .round-card { font-size: clamp(2.4rem, 12vw, 5rem); font-weight: 900; animation: pop .4s ease-out; }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------- round summary, city bonus, final ---------- */
+.card {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 20px 16px; background: linear-gradient(#8ecbff, #e8f4ff); text-align: center;
+}
+.card h2 { margin: 0; font-size: clamp(1.6rem, 6vw, 2.4rem); color: #15336b; }
+.card h3 { margin: 10px 0 0; color: #15336b; }
+.stat { display: flex; justify-content: space-between; gap: 24px; width: min(100%, 340px); padding: 10px 16px; border-radius: 12px; background: #fff; font-size: 1.15rem; font-weight: 700; }
+.stat-value { color: var(--accent); }
+.city-bonus { justify-content: flex-start; }
+.city-sky { width: min(100%, 560px); height: 30dvh; min-height: 140px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 14px rgba(20, 50, 100, .25); }
+.city-hint { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--ink); }
+.city-choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: min(100%, 440px); }
+.city-btn {
+  min-height: 54px; padding: 8px 12px; border: 3px solid #b7cae6; border-radius: 14px; background: #fff; color: var(--ink);
+  font-size: 1.2rem; font-weight: 800; cursor: pointer;
+}
+.city-btn:disabled { cursor: default; }
+.city-btn.is-correct { background: #b6f2c1; border-color: var(--good); }
+.city-btn.is-wrong { background: #ffd0d0; border-color: var(--bad); }
+.city-result { min-height: 1.6em; margin: 0; font-size: 1.4rem; font-weight: 900; color: var(--ink); }
+.final { justify-content: flex-start; overflow-y: auto; }
+.personal-best { margin: 0; padding: 6px 18px; border-radius: 999px; background: #ffe27a; color: #6b4a00; font-size: 1.3rem; font-weight: 900; animation: pop .5s ease-out; }
+.totals { display: flex; gap: 12px; }
+.total-box { display: grid; gap: 2px; min-width: 130px; padding: 12px 18px; border-radius: 14px; background: #fff; }
+.total-value { font-size: 2rem; font-weight: 900; color: var(--accent); }
+.total-label { font-size: .9rem; font-weight: 700; color: var(--ink-soft); }
+.final table { width: min(100%, 560px); border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; font-size: .95rem; }
+.final th, .final td { padding: 6px 8px; text-align: center; }
+.final th { background: #dbe6f5; color: var(--ink); }
+.final tbody tr:nth-child(even) { background: #f3f7fd; }
+.final tr.is-current { background: #fff3b0 !important; font-weight: 900; }
+.credit { margin-top: 8px; font-size: .85rem; color: var(--ink-soft); }

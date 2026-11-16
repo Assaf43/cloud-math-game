@@ -47,6 +47,7 @@ export class Storage {
   }
 
   addScore(e: ScoreEntry): { isPersonalBest: boolean } {
+    if (!this.backend) return { isPersonalBest: false };        // nothing can be saved, so nothing is a saved record
     const entry: ScoreEntry = { ...e, name: cleanName(e.name) };
     const data = this.read();
     const best = this.bestOf(data.scores, entry.name, entry.grade, entry.difficulty);
