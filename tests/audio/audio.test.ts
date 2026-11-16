@@ -8,14 +8,19 @@ class FakeParam {
   cancelScheduledValues() {}
 }
 class FakeNode { connect(n: unknown) { return n; } disconnect() {} }
-class FakeOsc extends FakeNode { type = 'sine'; frequency = new FakeParam(); started = false; start() { this.started = true; } stop() {} }
+class FakeOsc extends FakeNode { type = 'sine'; frequency = new FakeParam(); detune = new FakeParam(); started = false; start() { this.started = true; } stop() {} }
 class FakeGain extends FakeNode { gain = new FakeParam(); }
+class FakeFilter extends FakeNode { type = 'lowpass'; frequency = new FakeParam(); }
+class FakeConvolver extends FakeNode { buffer: unknown = null; }
 class FakeCtx {
-  oscillators: FakeOsc[] = []; gains: FakeGain[] = [];
-  currentTime = 0; state = 'running'; destination = new FakeNode();
+  oscillators: FakeOsc[] = []; gains: FakeGain[] = []; filters: FakeFilter[] = []; convolvers: FakeConvolver[] = [];
+  sampleRate = 8000; currentTime = 0; state = 'running'; destination = new FakeNode();
   resumed = 0; suspended = 0;
   createOscillator() { const o = new FakeOsc(); this.oscillators.push(o); return o; }
   createGain() { const g = new FakeGain(); this.gains.push(g); return g; }
+  createBiquadFilter() { const f = new FakeFilter(); this.filters.push(f); return f; }
+  createConvolver() { const c = new FakeConvolver(); this.convolvers.push(c); return c; }
+  createBuffer(_ch: number, length: number) { return { getChannelData: () => new Float32Array(length) }; }
   resume() { this.resumed++; this.state = 'running'; return Promise.resolve(); }
   suspend() { this.suspended++; this.state = 'suspended'; return Promise.resolve(); }
 }
@@ -115,4 +120,34 @@ test('start() after pauseMusic() brings the music back', () => {
   const n = ctx.oscillators.length;
   ctx.currentTime = 100; audio.start();
   expect(ctx.oscillators.length).toBeGreaterThan(n);
+});
+
+test('the music is soft: only sine and triangle tones, through a low-pass filter and a reverb', () => {
+  const { ctx, audio } = make();
+  audio.start();
+  expect(ctx.oscillators.length).toBeGreaterThan(10);
+  expect(new Set(ctx.oscillators.map(o => o.type))).toEqual(new Set(['sine', 'triangle']));   // no square/sawtooth chiptune
+  expect(ctx.filters.length).toBeGreaterThan(0);
+  expect(ctx.filters.every(f => f.frequency.value <= 2000)).toBe(true);
+  expect(ctx.convolvers).toHaveLength(1);
+  expect(ctx.convolvers[0].buffer).not.toBeNull();
+});
+
+test('the music is slow: bars last several seconds, so notes are never rushed', () => {
+  const { ctx, audio } = make();
+  audio.start();
+  ctx.currentTime = 0; vi.advanceTimersByTime(60000);
+  const first = ctx.oscillators.length;
+  ctx.currentTime = 8; vi.advanceTimersByTime(500);
+  expect(ctx.oscillators.length).toBeGreaterThan(first - 1);
+});
+
+test('still plays without reverb or filter support (older browsers)', () => {
+  const ctx = new FakeCtx();
+  (ctx as unknown as Record<string, unknown>).createConvolver = undefined;
+  (ctx as unknown as Record<string, unknown>).createBiquadFilter = undefined;
+  const audio = new GameAudio(false, () => ctx as unknown as AudioContext);
+  audio.start();
+  expect(ctx.oscillators.length).toBeGreaterThan(0);
+  audio.playSuccess();
 });
