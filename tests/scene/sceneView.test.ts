@@ -116,6 +116,7 @@ test('tapping an answer reports its text; markWrong marks it; answers are button
 test('clouds block taps on the answers they cover (CSS), puffs and layers do not', () => {
   const css = readFileSync('src/styles.css', 'utf8');
   expect(css).toMatch(/\.cloud\s*\{[^}]*pointer-events:\s*auto/);
+  expect(css).toMatch(/\.answer\s*\{[^}]*pointer-events:\s*auto/);          // layers are pointer-events:none, which children inherit
   expect(css).toMatch(/\.scene-layer\s*,?[^{]*\{[^}]*pointer-events:\s*none/);
 });
 

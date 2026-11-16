@@ -92,6 +92,7 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 .answer {
   position: absolute;
   z-index: 2;
+  pointer-events: auto;                   /* the layer above ignores the pointer; the answers themselves take taps */
   display: flex; align-items: center; justify-content: center;
   border-radius: 999px;
   background: rgba(255, 255, 255, .94);
