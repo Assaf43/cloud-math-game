@@ -1,7 +1,8 @@
 import { topics as t3 } from '../../src/problems/grade3';
-import { topics as t4 } from '../../src/problems/grade4';
-import { topics as t5 } from '../../src/problems/grade5';
-import { topics as t6 } from '../../src/problems/grade6';
+import { topics as a4, parkedTopics as p4 } from '../../src/problems/grade4';
+import { topics as a5, parkedTopics as p5 } from '../../src/problems/grade5';
+import { topics as a6, parkedTopics as p6 } from '../../src/problems/grade6';
+import { mergeTables } from './helpers';
 import type { TopicTable } from '../../src/problems/topic';
 import { createRng } from '../../src/rng';
 import { gcd } from '../../src/problems/rational';
@@ -23,6 +24,7 @@ function sample(table: TopicTable, d: Difficulty, topic: string): string[] {
   expect(out.length).toBeGreaterThan(0);
   return out;
 }
+const t4 = mergeTables(a4, p4), t5 = mergeTables(a5, p5), t6 = mergeTables(a6, p6);   // parked topics keep their caps too
 const nums = (text: string) => (text.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
 const asNums = (texts: string[]) => texts.map(nums);
 const DS = ['beginner', 'advanced', 'expert'] as const;
@@ -63,17 +65,15 @@ describe('grade 4', () => {
 });
 
 describe('grade 5', () => {
-  test('multiplication: one digit, then friendly two-digit, then two-digit by two-digit, never bigger', () => {
-    for (const [a, b] of asNums(sample(t5, 'beginner', 'g5.mul'))) { expect(Math.min(a, b)).toBeLessThanOrEqual(9); expect(Math.max(a, b)).toBeLessThanOrEqual(40); }
-    for (const [a, b] of asNums(sample(t5, 'advanced', 'g5.mul'))) { expect(a).toBeLessThanOrEqual(35); expect(b === 20 || b === 30 || b === 40 || (b >= 11 && b <= 19)).toBe(true); }
-    for (const [a, b] of asNums(sample(t5, 'expert', 'g5.mul'))) { expect(a).toBeLessThanOrEqual(49); expect(b).toBeLessThanOrEqual(29); expect(a * b).toBeLessThanOrEqual(1500); }
+  test('multiplication: table facts, then two-digit by one digit, then two-digit by friendly numbers', () => {
+    for (const [a, b] of asNums(sample(a5, 'beginner', 'g5.mul'))) { expect(a).toBeLessThanOrEqual(12); expect(b).toBeLessThanOrEqual(9); }
+    for (const [a, b] of asNums(sample(a5, 'advanced', 'g5.mul'))) { expect(a).toBeLessThanOrEqual(40); expect(b).toBeLessThanOrEqual(9); }
+    for (const [a, b] of asNums(sample(a5, 'expert', 'g5.mul'))) { expect(a).toBeLessThanOrEqual(30); expect([11, 12, 15, 20, 25]).toContain(b); }
   });
-  test('division: no big divisors and no big dividends', () => {
-    for (const d of DS) for (const [dividend, divisor] of asNums(sample(t5, d, 'g5.div'))) {
-      expect(dividend).toBeLessThanOrEqual(1350);
-      expect(divisor).toBeLessThanOrEqual(d === 'beginner' ? 90 : 35);
-    }
-    for (const [, divisor] of asNums(sample(t5, 'advanced', 'g5.div'))) expect([12, 15, 16, 18, 20, 25, 30]).toContain(divisor);
+  test('division: small divisors and small dividends', () => {
+    for (const [dividend, divisor] of asNums(sample(a5, 'beginner', 'g5.div'))) { expect(divisor).toBeLessThanOrEqual(9); expect(dividend).toBeLessThanOrEqual(108); }
+    for (const [dividend, divisor] of asNums(sample(a5, 'advanced', 'g5.div'))) { expect(divisor).toBeLessThanOrEqual(9); expect(dividend).toBeLessThanOrEqual(540); }
+    for (const [dividend, divisor] of asNums(sample(a5, 'expert', 'g5.div'))) { expect([11, 12, 15, 20, 25]).toContain(divisor); expect(dividend).toBeLessThanOrEqual(500); }
   });
   test('beginner fractions: same denominator, the answer is a proper fraction that needs no simplifying and no mixed number', () => {
     for (const topic of ['g5.frac-add', 'g5.frac-sub'])

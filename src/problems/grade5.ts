@@ -2,6 +2,7 @@ import type { Rng } from '../types';
 import { pick, randInt } from '../rng';
 import { decProblem, fracProblem, intProblem, type TopicGenerator, type TopicTable } from './topic';
 import { eq, gcd, rat, sub as subR, add as addR } from './rational';
+import { diffGen, missingGen, orderGen, orderTemplates as T, productGen, quotientGen, sumGen } from './wholeNumbers';
 import type { Rational } from '../types';
 
 /*
@@ -10,26 +11,6 @@ import type { Rational } from '../types';
  * one-digit factors, then friendly two-digit factors, then two-digit by two-digit; divisors that are easy to work with;
  * fractions whose common denominator is small; decimals below 10 (below 20 at expert).
  */
-
-// ---- g5.mul ---------------------------------------------------------------
-const mulWrong = (a: number, b: number): number[] => {
-  const p = a * b;
-  return [p + 10, p - 10, p + 100, p - 100, p + a, p - a, p + b, p - b];
-};
-const mulProblem = (a: number, b: number) => intProblem('g5.mul', `${a} × ${b}`, a * b, mulWrong(a, b));
-const mulBeginner: TopicGenerator = rng => mulProblem(randInt(rng, 11, 40), randInt(rng, 2, 9));
-const mulAdvanced: TopicGenerator = rng => mulProblem(randInt(rng, 12, 35), pick(rng, [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 40]));
-const mulExpert: TopicGenerator = rng => mulProblem(randInt(rng, 12, 49), randInt(rng, 11, 29));
-
-// ---- g5.div (two-digit divisor, exact) -------------------------------------
-const divProblem = (d: number, q: number) =>
-  intProblem('g5.div', `${d * q} ÷ ${d}`, q, [q + 1, q - 1, q * 10, q + 10, q - 10, d]);
-const divBeginner: TopicGenerator = rng => divProblem(randInt(rng, 2, 9) * 10, randInt(rng, 2, 15));          // 480 ÷ 20
-const divAdvanced: TopicGenerator = rng => divProblem(pick(rng, [12, 15, 16, 18, 20, 25, 30]), randInt(rng, 2, 9));
-const divExpert: TopicGenerator = rng => {
-  const d = randInt(rng, 11, 35);
-  return divProblem(d, randInt(rng, 5, Math.min(30, Math.floor(1000 / d))));
-};
 
 // ---- g5.frac-add / g5.frac-sub ----------------------------------------------
 interface Frac { whole: number; a: number; d: number }
@@ -146,17 +127,47 @@ const expertPool: FracPool = rng => {
   return quartersFifths(rng).map((x, i) => (i === 2 ? true : x)) as [number, number, boolean];   // 2 3/4 = ?
 };
 
-export const topics: TopicTable = {
+/** Parked until the school's own material says what to ask: fractions and decimals. */
+export const parkedTopics: TopicTable = {
   beginner: [
-    mulBeginner, divBeginner, fracGen('add', sameDenoms, false, plainSameDenominator), fracGen('sub', sameDenoms, false, plainSameDenominator),
+    fracGen('add', sameDenoms, false, plainSameDenominator), fracGen('sub', sameDenoms, false, plainSameDenominator),
     decGen('add', decBeginner), decGen('sub', decBeginner), expandGen(2, 3, 6, false), toDecimal(halvesTenths),
   ],
   advanced: [
-    mulAdvanced, divAdvanced, fracGen('add', multipleDenoms, false, belowOne), fracGen('sub', multipleDenoms, false, belowOne),
+    fracGen('add', multipleDenoms, false, belowOne), fracGen('sub', multipleDenoms, false, belowOne),
     decGen('add', decAdvanced), decGen('sub', decAdvanced), expandGen(2, 6, 6, false), toDecimal(quartersFifths),
   ],
   expert: [
-    mulExpert, divExpert, fracGen('add', otherDenoms, true), fracGen('sub', otherDenoms, true),
+    fracGen('add', otherDenoms, true), fracGen('sub', otherDenoms, true),
     decGen('add', decExpert), decGen('sub', decExpert), expandGen(2, 6, 6, true), toDecimal(expertPool),
+  ],
+};
+
+/**
+ * Active: whole numbers only. Sums and differences, products and quotients from the tables and a little beyond, missing
+ * numbers, and order-of-operations exercises with brackets such as 6 × (2 + 3).
+ */
+export const topics: TopicTable = {
+  beginner: [
+    sumGen('g5.add', 10, 90, 100), diffGen('g5.sub', 10, 100), productGen('g5.mul', [3, 12], [3, 9]),
+    quotientGen('g5.div', [2, 9], [3, 12]), missingGen('g5.missing', [2, 9], [10, 60]),
+    orderGen('g5.order', [T.timesSum([2, 9], [1, 6]), T.sumTimes([2, 9], [1, 6]), T.plusTimes([2, 9], [1, 6]), T.timesMinus([2, 9], [1, 6])], 100),
+  ],
+  advanced: [
+    sumGen('g5.add', 100, 900, 1000, 10), diffGen('g5.sub', 100, 1000, 10), productGen('g5.mul', [12, 40], [2, 9]),
+    quotientGen('g5.div', [2, 9], [10, 60]), missingGen('g5.missing', [3, 12], [20, 200]),
+    orderGen('g5.order', [
+      T.timesSumMinus([2, 9], [1, 9]), T.sumTimesDiff([2, 6]), T.plusTimesMinus([2, 9], [2, 9]), T.timesDiff([2, 9], [1, 9]),
+      T.sumOverNumber([2, 15]), T.timesOver([2, 9], [2, 12]),
+    ], 200),
+  ],
+  expert: [
+    sumGen('g5.add', 100, 5000, 6000, 100), diffGen('g5.sub', 100, 5000, 100),
+    productGen('g5.mul', [12, 30], { choices: [11, 12, 15, 20, 25] }),
+    quotientGen('g5.div', { choices: [11, 12, 15, 20, 25] }, [4, 20]), missingGen('g5.missing', [6, 12], [50, 500]),
+    orderGen('g5.order', [
+      T.sumTimesMinusProduct([2, 6], [2, 9]), T.twoProducts([2, 9], [2, 9]), T.timesSumOver([2, 9], [2, 9]), T.sumTimesDiff([2, 8]),
+      T.timesSumMinus([3, 9], [2, 9]),
+    ], 300),
   ],
 };

@@ -1,9 +1,10 @@
-import { topics } from '../../src/problems/grade5';
-import { checkGrade } from './helpers';
+import { topics as active, parkedTopics } from '../../src/problems/grade5';
+import { checkGrade, mergeTables } from './helpers';
 import { evalText } from './evalText';
 import { createRng } from '../../src/rng';
 import { eq, gcd, rat } from '../../src/problems/rational';
 
+const topics = mergeTables(active, parkedTopics);
 const all = () => (['beginner', 'advanced', 'expert'] as const).flatMap(d =>
   topics[d].flatMap(gen => Array.from({ length: 300 }, (_, seed) => ({ d, p: gen(createRng(seed)) }))));
 

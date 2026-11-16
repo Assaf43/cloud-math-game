@@ -3,6 +3,12 @@ import type { TopicGenerator } from '../../src/problems/topic';
 import { createRng } from '../../src/rng';
 import { eq } from '../../src/problems/rational';
 
+export type Table = Record<Difficulty, TopicGenerator[]>;
+/** The active topics plus the parked ones (fractions, decimals): both stay correct and tested. */
+export const mergeTables = (a: Table, b: Table): Table => ({
+  beginner: [...a.beginner, ...b.beginner], advanced: [...a.advanced, ...b.advanced], expert: [...a.expert, ...b.expert],
+});
+
 export function checkGrade(topics: Record<Difficulty, TopicGenerator[]>, evalText?: (t: string) => Rational | null) {
   for (const d of ['beginner', 'advanced', 'expert'] as const) {
     expect(topics[d].length).toBeGreaterThan(0);

@@ -2,6 +2,7 @@ import type { Rng } from '../types';
 import { randInt } from '../rng';
 import { intProblem, type TopicGenerator, type TopicTable } from './topic';
 import { noBorrowSub, noCarryAdd } from './errors';
+import { missingGen } from './wholeNumbers';
 
 /*
  * Children answer in their heads in about 30 seconds, by tapping one of a few answers, so the numbers stay friendly:
@@ -87,10 +88,16 @@ const fractionOf = (dLo: number, dHi: number, unit: boolean, maxQ: number): Topi
   return intProblem('g4.fraction-of', `${n}/${d} מתוך ${q}`, r, [k, q - r, r + k, r - k, n * q / (d + 1)]);
 };
 
+/** Active: whole numbers only. */
 export const topics: TopicTable = {
-  beginner: [addGen(1000, 1), subGen(1000, 1), mulBeginner, divGen(2, 9), orderBeginner, fractionOf(2, 5, true, 60)],
-  advanced: [addGen(10000, 10), subGen(10000, 10), mulAdvanced, divGen(3, 5), orderAdvanced, fractionOf(2, 6, false, 60)],
-  expert: [addGen(100000, 100), subGen(100000, 100), mulExpert, divGen(3, 9), orderExpert, fractionOf(2, 10, false, 120)],
+  beginner: [addGen(1000, 1), subGen(1000, 1), mulBeginner, divGen(2, 9), orderBeginner, missingGen('g4.missing', [2, 9], [10, 50])],
+  advanced: [addGen(10000, 10), subGen(10000, 10), mulAdvanced, divGen(3, 5), orderAdvanced, missingGen('g4.missing', [3, 12], [20, 300])],
+  expert: [addGen(100000, 100), subGen(100000, 100), mulExpert, divGen(3, 9), orderExpert, missingGen('g4.missing', [6, 12], [50, 1000])],
 };
 
-
+/** Parked until the school's own material says what to ask: fractions of a quantity. */
+export const parkedTopics: TopicTable = {
+  beginner: [fractionOf(2, 5, true, 60)],
+  advanced: [fractionOf(2, 6, false, 60)],
+  expert: [fractionOf(2, 10, false, 120)],
+};

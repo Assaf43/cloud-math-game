@@ -2,6 +2,7 @@ import type { Rng } from '../types';
 import { pick, randInt } from '../rng';
 import { decProblem, fracProblem, intProblem, type TopicGenerator, type TopicProblem, type TopicTable } from './topic';
 import { div, gcd, mul, rat } from './rational';
+import { diffGen, missingGen, orderGen, orderTemplates as T, productGen, quotientGen, sumGen } from './wholeNumbers';
 
 /** Retries until the typed form of the answer fits the 8-character input limit. */
 const bounded = (gen: TopicGenerator): TopicGenerator => rng => {
@@ -138,15 +139,35 @@ const ratio = (aMax: number, bMax: number, kind: 'unit' | 'large' | 'either'): T
   ]);
 });
 
+/** Parked until the school's own material says what to ask: fractions and decimals. */
+export const parkedTopics: TopicTable = {
+  beginner: [fracMul('whole'), fracDiv('smallDivisions'), decMulPowers, decDivPowers],
+  advanced: [fracMul('frac'), fracDiv('frac'), decMulDigit, decDivDigit],
+  expert: [fracMul('mixed'), fracDiv('mixed'), decMulDecimals, decDivDecimal],
+};
+
+/** Active: whole numbers only (percent and ratio have whole-number answers too). */
 export const topics: TopicTable = {
   beginner: [
-    fracMul('whole'), fracDiv('smallDivisions'), decMulPowers, decDivPowers, percentForward([10, 25, 50], 200), ratio(1, 5, 'unit'),
+    sumGen('g6.add', 100, 900, 1000, 10), diffGen('g6.sub', 100, 1000, 10), productGen('g6.mul', [12, 25], [2, 9]),
+    quotientGen('g6.div', [2, 9], [5, 30]),
+    orderGen('g6.order', [T.timesSum([2, 9], [1, 9]), T.sumTimes([2, 9], [1, 9]), T.plusTimes([2, 9], [1, 9]), T.timesMinus([2, 9], [1, 9])], 150),
+    percentForward([10, 25, 50], 200), ratio(1, 5, 'unit'),
   ],
   advanced: [
-    fracMul('frac'), fracDiv('frac'), decMulDigit, decDivDigit,
+    productGen('g6.mul', [12, 40], [2, 9]), quotientGen('g6.div', [2, 9], [10, 60]), missingGen('g6.missing', [3, 12], [20, 300]),
+    orderGen('g6.order', [
+      T.timesSumMinus([2, 9], [1, 9]), T.sumTimesDiff([2, 7]), T.plusTimesMinus([2, 9], [2, 9]), T.timesDiff([2, 9], [1, 9]),
+      T.sumOverNumber([2, 20]), T.timesOver([2, 12], [2, 12]),
+    ], 250),
     percentForward([5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90], 200), ratio(5, 5, 'large'),
   ],
   expert: [
-    fracMul('mixed'), fracDiv('mixed'), decMulDecimals, decDivDecimal, percentReverse, ratio(7, 7, 'either'),
+    productGen('g6.mul', [12, 35], { choices: [11, 12, 15, 20, 25] }), quotientGen('g6.div', { choices: [11, 12, 15, 20, 25] }, [4, 24]),
+    orderGen('g6.order', [
+      T.sumTimesMinusProduct([2, 7], [2, 9]), T.twoProducts([2, 9], [2, 12]), T.timesSumOver([2, 12], [2, 12]), T.sumTimesDiff([2, 9]),
+      T.timesSumMinus([3, 12], [2, 12]),
+    ], 400),
+    percentReverse, ratio(7, 7, 'either'),
   ],
 };

@@ -2,6 +2,7 @@ import type { Rng } from '../types';
 import { pick, randInt } from '../rng';
 import { intProblem, type TopicGenerator, type TopicTable } from './topic';
 import { noBorrowSub, noCarryAdd } from './errors';
+import { orderGen, orderTemplates as T } from './wholeNumbers';
 
 const addGen = (lo: number, hi: number, max: number): TopicGenerator => rng => {
   const a = randInt(rng, lo, Math.min(hi, max - lo));
@@ -82,7 +83,8 @@ const orderExpert: TopicGenerator = rng => {
 };
 
 export const topics: TopicTable = {
-  beginner: [addGen(10, 90, 100), subGen(10, 100), timesTable(2, 5, 2, 10), timesPowers, divTable(2, 5)],
+  beginner: [addGen(10, 90, 100), subGen(10, 100), timesTable(2, 5, 2, 10), timesPowers, divTable(2, 5),
+    orderGen('g3.order', [T.timesSum([2, 5], [1, 5]), T.sumTimes([2, 5], [1, 5])], 50)],
   advanced: [addGen(50, 500, 1000), subGen(50, 500), timesTable(2, 10, 2, 10), timesTensByDigit, divTable(2, 10), divPowers, orderAdvanced],
   expert: [addGen(200, 3000, 5000), subGen(100, 3000), timesTable(6, 9, 6, 9), timesTensByTens, divTensByDigit, orderExpert],
 };

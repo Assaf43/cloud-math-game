@@ -32,7 +32,6 @@ test('g3.order wrong list contains the precedence-ignoring result', () => {
 
 test('each difficulty only uses the topics the plan lists', () => {
   const ids = (d: 'beginner' | 'advanced' | 'expert') => new Set(topics[d].map(g => g(createRng(1)).topic));
-  expect(ids('beginner')).not.toContain('g3.order');
   expect(ids('beginner')).not.toContain('g3.div-tens');
   expect(ids('expert')).not.toContain('g3.div-table');
   expect(ids('advanced')).toContain('g3.order');

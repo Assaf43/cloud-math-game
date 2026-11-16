@@ -43,6 +43,12 @@ and sample answers.
 
 ### Changing what a grade is asked
 
+For now the game asks **whole numbers only** (sums, products, quotients, missing numbers and order-of-operations
+exercises such as `6 × (2 + 3)`, plus simple percent and ratio in grade 6). Fractions and decimals are *parked*: each
+grade file exports them as `parkedTopics`, still tested but not used by `generateProblem`. When the school's own material
+says what to ask, move topics between `topics` and `parkedTopics` or add new ones. Shared whole-number builders
+are in `src/problems/wholeNumbers.ts`.
+
 The Ministry of Education is replacing the curriculum grade by grade, so each grade's topics live in their own file.
 A file exports `topics: Record<Difficulty, TopicGenerator[]>`; a generator takes the seeded RNG and returns the problem
 text, the answer and a list of that topic's common mistakes (`wrong`), which become the wrong choices. Add or edit a

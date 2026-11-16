@@ -1,7 +1,9 @@
-import { topics } from '../../src/problems/grade4';
-import { checkGrade } from './helpers';
+import { topics as active, parkedTopics } from '../../src/problems/grade4';
+import { checkGrade, mergeTables } from './helpers';
 import { evalText } from './evalText';
 import { createRng } from '../../src/rng';
+
+const topics = mergeTables(active, parkedTopics);
 
 test('grade 4 topics satisfy the shared rules', () => checkGrade(topics, evalText));
 
