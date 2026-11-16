@@ -25,7 +25,7 @@ test.each([4, 5, 6] as const)('fairness holds for %i slots over 60 s', count => 
 test.each([4, 5, 6] as const)('layout for %i slots is in bounds and not overlapping', count => {
   const s = slotLayout(count); expect(s).toHaveLength(count);
   for (const a of s) {
-    expect(a.widthPct).toBe(18);
+    expect(a.widthPct).toBe(24);
     expect(a.xPct).toBeGreaterThanOrEqual(2); expect(a.xPct + a.widthPct).toBeLessThanOrEqual(98);
     expect(a.yPct).toBeGreaterThanOrEqual(6); expect(a.yPct).toBeLessThanOrEqual(52);
   }

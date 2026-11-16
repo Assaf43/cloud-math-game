@@ -1,5 +1,5 @@
 import { skylineSvg } from '../../src/scene/skylines';
-import { SceneView, BUMP_OVERHANG_RATIO } from '../../src/scene/sceneView';
+import { SceneView } from '../../src/scene/sceneView';
 import { readFileSync } from 'node:fs';
 import { makeLane, slotLayout } from '../../src/scene/clouds';
 import { CITIES } from '../../src/weather/cities';
@@ -74,24 +74,31 @@ test('clear removes answers and clouds, setAnswers replaces the previous ones', 
   expect(root.querySelectorAll('[data-answer]')).toHaveLength(0); expect(root.querySelectorAll('.cloud')).toHaveLength(0);
 });
 
-test.each([4, 5, 6] as const)('a cloud (with its bumps) never reaches the answer of the row above, for %i answers', count => {
+test.each([4, 5, 6] as const)('the row cap for %i answers is smaller than the gap between rows, and CSS sizes pills and clouds from it', count => {
   const { root, v, slots, lanes } = setup(count);
   v.setAnswers(Array.from({ length: count }, (_, i) => intAnswer(i)), slots, lanes);
   const ys = slots.map(s => s.yPct).sort((a, b) => a - b);
   const gap = Math.min(...ys.slice(1).map((y, i) => y - ys[i]));
-  const answerH = parseFloat(root.querySelector<HTMLElement>('[data-answer]')!.style.height);
-  const cloudH = parseFloat(root.querySelector<HTMLElement>('.cloud')!.style.height);
-  expect(cloudH).toBeGreaterThanOrEqual(answerH);                       // a cloud still covers the whole answer
-  expect(cloudH * (1 + BUMP_OVERHANG_RATIO)).toBeLessThanOrEqual(gap + 1e-9);
+  const cap = parseFloat(root.style.getPropertyValue('--row-cap'));
+  expect(cap).toBeGreaterThan(0); expect(cap).toBeLessThan(gap);
+  const css = readFileSync('src/styles.css', 'utf8');
+  expect(css).toMatch(/--pill-h:[^;]*var\(--row-cap/);
+  expect(css).toMatch(/\.answer\s*\{[^}]*height:\s*var\(--pill-h\)/);
+  expect(css).toMatch(/\.cloud\s*\{[^}]*height:\s*calc\(var\(--pill-h\)\s*\*\s*1\.1\)/);   // a cloud body is a little taller than a pill, so it covers it
 });
 
-test('the CSS bump overhang matches BUMP_OVERHANG_RATIO', () => {
+test('every cloud has decorative puffs behind the answers, moving with it, that never take taps', () => {
+  const { root, v, slots, lanes } = setup();
+  v.setAnswers([1, 2, 3, 4].map(intAnswer), slots, lanes); v.render(0);
+  const clouds = [...root.querySelectorAll<HTMLElement>('.cloud')], puffs = [...root.querySelectorAll<HTMLElement>('.cloud-puff')];
+  expect(puffs).toHaveLength(clouds.length);
+  clouds.forEach((c, i) => { expect(puffs[i].style.left).toBe(c.style.left); expect(puffs[i].hidden).toBe(c.hidden); expect(puffs[i].querySelector('svg')).not.toBeNull(); });
+  const layers = [...root.children].map(c => c.className);
+  expect(layers.indexOf('scene-layer scene-puffs')).toBeLessThan(layers.indexOf('scene-layer scene-answers'));
+  expect(layers.indexOf('scene-layer scene-answers')).toBeLessThan(layers.indexOf('scene-layer scene-clouds'));
+  v.clear(); expect(root.querySelectorAll('.cloud-puff')).toHaveLength(0);
   const css = readFileSync('src/styles.css', 'utf8');
-  const m = css.match(/\.cloud::before\s*\{[^}]*top:\s*-(\d+(?:\.\d+)?)%/);
-  expect(m).not.toBeNull();
-  expect(+m![1] / 100).toBeLessThanOrEqual(BUMP_OVERHANG_RATIO + 1e-9);
-  const after = css.match(/\.cloud::after\s*\{[^}]*top:\s*-(\d+(?:\.\d+)?)%/);
-  expect(+after![1] / 100).toBeLessThanOrEqual(BUMP_OVERHANG_RATIO + 1e-9);
+  expect(css).not.toMatch(/\.cloud-puff\s*\{[^}]*pointer-events:\s*auto/);
 });
 
 test('tapping an answer reports its text; markWrong marks it; answers are buttons', () => {

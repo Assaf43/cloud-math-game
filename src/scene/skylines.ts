@@ -112,8 +112,8 @@ const BUILDERS: Record<string, () => string> = {
     rect(960, 120, 14, 68) + poly('956,120 978,120 967,100'),
 
   'mitzpe-ramon': () =>
-    path('M0 200 L0 72 L200 72 L262 92 L304 142 L342 200 Z') + path('M1000 200 L1000 72 L800 72 L738 92 L696 142 L658 200 Z') +
-    path('M340 200 L362 176 Q500 160 640 178 L660 200 Z') + ibex(110, 72, 1.3) + ibex(890, 72, 1.0, true),
+    path('M0 200 L0 72 L300 72 L350 92 L386 142 L412 200 Z') + path('M1000 200 L1000 72 L700 72 L650 92 L614 142 L588 200 Z') +
+    path('M410 200 L426 176 Q500 164 574 176 L590 200 Z') + ibex(250, 72, 1.3) + ibex(770, 72, 1.0, true),
 
   caesarea: () =>
     `<path fill-rule="evenodd" d="M0 100 H700 V172 H0 Z${Array.from({ length: 11 }, (_, i) =>
@@ -122,7 +122,16 @@ const BUILDERS: Record<string, () => string> = {
     [0, 1, 2, 3].map(i => rect(748 + i * 28, 122, 8, 52)).join('') + rect(740, 112, 104, 10) + poly('740,112 792,92 844,112'),
 };
 
+/**
+ * The drawing is wider than a phone screen, so it is scaled to fill the strip it is shown in and cropped at the sides
+ * (`slice`). Which part stays in view depends on where the city's landmarks are drawn.
+ */
+const ALIGN: Record<string, 'xMinYMax' | 'xMidYMax' | 'xMaxYMax'> = {
+  'tel-aviv': 'xMinYMax', haifa: 'xMinYMax', ashdod: 'xMinYMax', 'beer-sheva': 'xMaxYMax',
+};
+
 export function skylineSvg(cityId: string): string {
   const body = (BUILDERS[cityId] ?? (() => rect(0, 170, 1000, 30)))();
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMax meet" fill="currentColor" aria-hidden="true" focusable="false">${body}</svg>`;
+  const align = ALIGN[cityId] ?? 'xMidYMax';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" preserveAspectRatio="${align} slice" fill="currentColor" aria-hidden="true" focusable="false">${body}</svg>`;
 }

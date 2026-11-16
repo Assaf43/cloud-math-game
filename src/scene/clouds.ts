@@ -5,12 +5,12 @@ import { randInt } from '../rng';
 export interface Slot { xPct: number; yPct: number; widthPct: number }        // answer position, x is the left edge
 export interface Lane { cloudWidthPct: number; gapPct: number; speedPctPerSec: number; phasePct: number; direction: 1 | -1 }
 
-export const SLOT_WIDTH_PCT = 18;
+export const SLOT_WIDTH_PCT = 24;
 const MIN_EXPOSED_SEC = 1.0;      // an answer is fully exposed for at least this long each time
 const MAX_HIDDEN_SEC = 3.0;       // and is never hidden or partly hidden for longer than this
 const SKY_TOP = 6, SKY_BOTTOM = 52;
 /** Alternating far-apart columns: neighbours in height are always at least 26 apart horizontally. */
-const COLUMNS = [10, 62, 36, 78, 22, 56];
+const COLUMNS = [6, 66, 30, 70, 20, 56];
 
 /**
  * One answer per height, zig-zagging across the sky. Every answer gets its own lane height so that a cloud of

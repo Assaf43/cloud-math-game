@@ -31,7 +31,11 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   --sky-top: #6fb7ff;
   --sky-bottom: #cfeaff;
   --skyline: #3a5170;
+  /* pill size follows the scene's width, so a finger can always hit it; the row cap keeps it inside its row on short scenes */
+  --pill-h: min(calc(24cqw / 2.3), calc(var(--row-cap, 8.8) * 1cqh));
   --cloud: #ffffff;
+  --cloud-mid: color-mix(in srgb, var(--cloud) 88%, #7b8aa5);
+  --cloud-shade: color-mix(in srgb, var(--cloud) 76%, #5d6c88);
   background: linear-gradient(var(--sky-top), var(--sky-bottom));
 }
 .scene[data-time="morning"] { --sky-top: #8ecbff; --sky-bottom: #ffe3b0; --skyline: #4a5b73; }
@@ -81,7 +85,7 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   .scene[data-weather="storm"] .scene-flash { opacity: 0; }
 }
 
-.scene-skyline { position: absolute; left: 0; right: 0; bottom: 0; height: 34%; color: var(--skyline); pointer-events: none; }
+.scene-skyline { position: absolute; left: 0; right: 0; bottom: 0; height: min(46%, 34cqw); color: var(--skyline); pointer-events: none; }
 .scene-skyline svg { display: block; width: 100%; height: 100%; }
 
 /* answers and clouds */
@@ -99,7 +103,8 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   font-weight: 800;
-  font-size: clamp(11px, calc(var(--ah, 8.8) * .6cqh), 40px);
+  height: var(--pill-h);
+  font-size: clamp(12px, calc(var(--pill-h) * .56), 44px);
   line-height: 1;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
   white-space: nowrap;
@@ -117,14 +122,16 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   position: absolute;
   z-index: 3;
   pointer-events: auto;                   /* a cloud blocks taps on the answer under it */
-  background: var(--cloud);
-  border-radius: 999px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, .18);
+  height: calc(var(--pill-h) * 1.1);
+  margin-top: calc(var(--pill-h) * -.05);
+  background: linear-gradient(to bottom, var(--cloud) 0, var(--cloud) 42%, var(--cloud-mid) 78%, var(--cloud-shade) 100%);
+  border-radius: 42% 42% 46% 46% / 60% 60% 55% 55%;
+  box-shadow: 0 5px 8px -3px rgba(40, 60, 100, .3);
 }
-.cloud[hidden] { display: none; }
-.cloud::before, .cloud::after { content: ""; position: absolute; background: var(--cloud); border-radius: 50%; }
-.cloud::before { left: 16%; top: -28%; width: 34%; height: 92%; }
-.cloud::after { right: 14%; top: -18%; width: 28%; height: 72%; }
+.cloud[hidden], .cloud-puff[hidden] { display: none; }
+/* decorative cumulus puffs: behind the answers, never take taps */
+.cloud-puff { position: absolute; z-index: 1; pointer-events: none; height: calc(var(--pill-h) * 1.1); margin-top: calc(var(--pill-h) * -.05); }
+.cloud-puff svg { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; aspect-ratio: 100 / 50; overflow: visible; }
 
 /* ---------- shared widgets ---------- */
 button { font-family: inherit; }

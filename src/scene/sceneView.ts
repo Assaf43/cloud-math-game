@@ -3,18 +3,29 @@ import { cloudLefts, type Lane, type Slot } from './clouds';
 import { skylineSvg } from './skylines';
 
 const MAX_ROW_HEIGHT_PCT = 8.8;
-/** How far a cloud's bumps rise above its body, as a share of the cloud height. Keep in sync with `.cloud::before` in styles.css. */
-export const BUMP_OVERHANG_RATIO = 0.28;
 
-/**
- * Answer pill and cloud share one height. It is capped so that a cloud, bumps included, never reaches the
- * answer of the row above it (otherwise another lane's cloud could hide part of an answer).
- */
+/** Answer pill and cloud body share one height, capped so that neighbouring rows never touch. */
 function rowHeightPct(slots: Slot[]): number {
   const ys = slots.map(s => s.yPct).sort((a, b) => a - b);
   const gap = Math.min(...ys.slice(1).map((y, i) => y - ys[i]), Infinity);
-  return Math.min(MAX_ROW_HEIGHT_PCT, gap / (1 + BUMP_OVERHANG_RATIO));
+  return Math.min(MAX_ROW_HEIGHT_PCT, gap - 0.4);
 }
+
+/**
+ * Cumulus puffs for a cloud, drawn BEHIND the answers: they are decoration only and may rise above the cloud body
+ * without ever hiding another answer. The cloud body (in front) is what covers an answer.
+ */
+const PUFF_SHAPES: ReadonlyArray<ReadonlyArray<readonly [number, number, number]>> = [
+  [[14, 34, 9], [28, 26, 13], [46, 18, 15], [64, 22, 13], [80, 29, 11], [90, 35, 8], [50, 34, 14]],
+  [[12, 35, 8], [24, 29, 11], [38, 22, 12], [55, 14, 13], [70, 22, 13], [84, 29, 11], [60, 34, 14]],
+  [[16, 33, 10], [34, 24, 14], [52, 26, 12], [66, 16, 12], [82, 27, 12], [92, 35, 7], [44, 34, 13]],
+];
+const puffSvg = (variant: number): string => {
+  const circles = PUFF_SHAPES[variant % PUFF_SHAPES.length].map(([cx, cy, r]) =>
+    `<circle cx="${cx}" cy="${cy}" r="${r}" style="fill:var(--cloud-mid)"/>` +
+    `<circle cx="${cx - r * 0.12}" cy="${cy - r * 0.18}" r="${r * 0.82}" style="fill:var(--cloud)"/>`).join('');
+  return `<svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true" focusable="false">${circles}</svg>`;
+};
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -43,10 +54,12 @@ function answerContent(a: Answer): HTMLElement {
  */
 export class SceneView {
   private readonly skyline = el('div', 'scene-skyline');
+  private readonly puffsLayer = el('div', 'scene-layer scene-puffs');
   private readonly answersLayer = el('div', 'scene-layer scene-answers');
   private readonly cloudsLayer = el('div', 'scene-layer scene-clouds');
   private lanes: Lane[] = [];
   private cloudEls: HTMLElement[][] = [];
+  private puffEls: HTMLElement[][] = [];
 
   /** Called with the text of the answer the player taps (mouse click or finger). */
   onPick: ((answerText: string) => void) | null = null;
@@ -57,7 +70,7 @@ export class SceneView {
     root.classList.add('scene');
     const weather = el('div', 'scene-weather');
     weather.append(el('div', 'scene-sun'), el('div', 'scene-veil'), el('div', 'scene-rain'), el('div', 'scene-flash'));
-    root.replaceChildren(weather, this.skyline, this.answersLayer, this.cloudsLayer);
+    root.replaceChildren(weather, this.skyline, this.puffsLayer, this.answersLayer, this.cloudsLayer);
   }
 
   setBackdrop(time: TimeOfDay, weather: WeatherState, cityId: string): void {
@@ -71,7 +84,7 @@ export class SceneView {
     this.clear();
     this.lanes = lanes;
     const rowHeight = +rowHeightPct(slots).toFixed(3);
-    this.root.style.setProperty('--ah', String(rowHeight));
+    this.root.style.setProperty('--row-cap', String(rowHeight));     // CSS keeps pills and clouds within one row
     choices.forEach((choice, i) => {
       const slot = slots[i];
       const a = el('button', 'answer');
@@ -81,22 +94,29 @@ export class SceneView {
       a.style.left = `${slot.xPct}%`;
       a.style.top = `${slot.yPct}%`;
       a.style.width = `${slot.widthPct}%`;
-      a.style.height = `${rowHeight}%`;
       a.append(answerContent(choice));
       this.answersLayer.append(a);
 
       const lane = lanes[i];
       const perLane = Math.ceil((100 + lane.cloudWidthPct) / (lane.cloudWidthPct + lane.gapPct)) + 1;
       const row: HTMLElement[] = [];
+      const puffRow: HTMLElement[] = [];
       for (let k = 0; k < perLane; k++) {
+        const place = (node: HTMLElement) => {
+          node.style.top = `${slot.yPct}%`;
+          node.style.width = `${lane.cloudWidthPct}%`;
+          node.hidden = true;
+        };
         const c = el('div', 'cloud');
-        c.style.top = `${slot.yPct}%`;
-        c.style.height = `${rowHeight}%`;
-        c.style.width = `${lane.cloudWidthPct}%`;
-        c.hidden = true;
-        row.push(c);
+        place(c);
+        const puff = el('div', 'cloud-puff');
+        puff.innerHTML = puffSvg(i + k);                       // static markup from this code base
+        place(puff);
+        row.push(c); puffRow.push(puff);
         this.cloudsLayer.append(c);
+        this.puffsLayer.append(puff);
       }
+      this.puffEls.push(puffRow);
       this.cloudEls.push(row);
     });
   }
@@ -105,7 +125,11 @@ export class SceneView {
     this.lanes.forEach((lane, i) => {
       const lefts = cloudLefts(lane, tMs);
       this.cloudEls[i].forEach((c, k) => {
-        if (k < lefts.length) { c.hidden = false; c.style.left = `${lefts[k]}%`; } else c.hidden = true;
+        const p = this.puffEls[i][k];
+        if (k < lefts.length) {
+          c.hidden = false; p.hidden = false;
+          c.style.left = `${lefts[k]}%`; p.style.left = `${lefts[k]}%`;
+        } else { c.hidden = true; p.hidden = true; }
       });
     });
   }
@@ -125,7 +149,9 @@ export class SceneView {
   clear(): void {
     this.answersLayer.replaceChildren();
     this.cloudsLayer.replaceChildren();
+    this.puffsLayer.replaceChildren();
     this.lanes = [];
     this.cloudEls = [];
+    this.puffEls = [];
   }
 }
