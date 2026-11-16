@@ -6,7 +6,7 @@ import type { GameConfig, WeatherState } from '../../src/types';
 
 const cfg: GameConfig = { name: 'נועה', age: 10, grade: 5, difficulty: 'beginner', secondsPerProblem: 30, rounds: 2 };
 
-function setup(over: Partial<GameConfig> = {}, seed = 1) {
+function setup(over: Partial<GameConfig> = {}, seed = 1, onNewGame?: () => void) {
   const root = document.createElement('div'); document.body.append(root);
   const session = new Session({ ...cfg, ...over }, createRng(seed), CITIES);
   let t = 0;
@@ -17,7 +17,7 @@ function setup(over: Partial<GameConfig> = {}, seed = 1) {
   const onRoundEnd = vi.fn(); const onMuteChange = vi.fn();
   const fetchWeather = vi.fn(async (): Promise<WeatherState> => 'rain');
   const screen = new GameScreen(root, session, {
-    audio: audio as never, now: () => t, fetchWeather, onRoundEnd, onMuteChange, rng: createRng(9), roundCardMs: 0,
+    audio: audio as never, now: () => t, fetchWeather, onRoundEnd, onMuteChange, onNewGame, rng: createRng(9), roundCardMs: 0,
   });
   const frame = (ms = 20) => vi.advanceTimersByTime(ms);
   const answerEl = (text: string) => root.querySelector<HTMLElement>(`[data-answer="${text}"]`)!;
@@ -239,5 +239,32 @@ test('the next problem shows fresh, untapped answers', async () => {
   s.tap(s.wrongChoice()); s.frame(1500);
   expect(s.root.querySelectorAll('.is-wrong, .is-correct')).toHaveLength(0);
   expect(s.root.querySelector('.problem')!.textContent).toBe(s.session.problem.text);
+  s.screen.destroy();
+});
+
+test('the pause menu offers a new game, with a confirmation, and cancelling keeps the game', async () => {
+  const onNewGame = vi.fn();
+  const s = setup({}, 1, onNewGame); await s.screen.start();
+  s.screen.pause();
+  const overlay = s.root.querySelector<HTMLElement>('.pause-overlay')!;
+  const byText = (t: string) => [...overlay.querySelectorAll('button')].find(b => b.textContent === t)!;
+  expect(byText('המשך')).toBeDefined();
+  byText('משחק חדש').click();
+  expect(overlay.textContent).toContain('להתחיל משחק חדש?');
+  byText('חזרה').click();
+  expect(onNewGame).not.toHaveBeenCalled();
+  byText('המשך').click();
+  expect(s.session.phase).toBe('problem'); s.tapRight(); expect(s.session.phase).toBe('reveal');
+  s.screen.destroy();
+});
+
+test('confirming a new game from the pause menu reports it once', async () => {
+  const onNewGame = vi.fn();
+  const s = setup({}, 1, onNewGame); await s.screen.start();
+  s.screen.pause();
+  const overlay = s.root.querySelector<HTMLElement>('.pause-overlay')!;
+  [...overlay.querySelectorAll('button')].find(b => b.textContent === 'משחק חדש')!.click();
+  [...overlay.querySelectorAll('button')].find(b => b.textContent === 'כן, משחק חדש')!.click();
+  expect(onNewGame).toHaveBeenCalledTimes(1);
   s.screen.destroy();
 });

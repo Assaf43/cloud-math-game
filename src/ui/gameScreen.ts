@@ -4,6 +4,7 @@ import type { GameAudio } from '../audio/audio';
 import { SceneView } from '../scene/sceneView';
 import { makeLane, slotLayout } from '../scene/clouds';
 import { timeOfDay } from '../scene/timeOfDay';
+import { newGameControl } from './newGameControl';
 
 export interface GameScreenDeps {
   audio: Pick<GameAudio, 'playSuccess' | 'pauseMusic' | 'resumeMusic' | 'setMuted' | 'muted'>;
@@ -12,6 +13,7 @@ export interface GameScreenDeps {
   onRoundEnd: () => void;
   rng: Rng;                              // for cloud lanes
   onMuteChange?: (muted: boolean) => void;
+  onNewGame?: () => void;                // offered in the pause menu, after a confirmation
   roundCardMs?: number;                  // how long the "סבב N" card shows (0 = none)
 }
 
@@ -150,6 +152,7 @@ export class GameScreen {
     this.resumeBtn.type = 'button';
     this.resumeBtn.addEventListener('click', () => this.resume());
     this.pauseOverlay.append(this.resumeBtn);
+    if (this.deps.onNewGame) this.pauseOverlay.append(newGameControl(this.deps.onNewGame));
     this.roundCard.hidden = true;
 
     this.game.append(status, this.sceneRoot, this.problemEl, timer, this.pauseOverlay, this.roundCard);

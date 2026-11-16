@@ -99,3 +99,27 @@ test('the last round goes to finished after the city question', () => {
   root.querySelector<HTMLButtonElement>('button[data-city]')!.click(); vi.advanceTimersByTime(1500);
   expect(s.phase).toBe('finished'); expect(onDone).toHaveBeenCalled();
 });
+
+test('the round summary has a new-game button with confirmation', () => {
+  const s = atSummary(); const onNewGame = vi.fn();
+  renderRoundSummary(root, s, () => {}, onNewGame);
+  const byText = (t: string) => [...root.querySelectorAll('button')].find(b => b.textContent === t)!;
+  byText('משחק חדש').click(); expect(onNewGame).not.toHaveBeenCalled();
+  byText('כן, משחק חדש').click(); expect(onNewGame).toHaveBeenCalledTimes(1);
+});
+
+test('without a handler the round summary has no new-game button', () => {
+  renderRoundSummary(root, atSummary(), () => {});
+  expect([...root.querySelectorAll('button')].some(b => b.textContent === 'משחק חדש')).toBe(false);
+});
+
+test('the city question has a new-game button; leaving cancels the pending move on', () => {
+  const s = atCity(); const onDone = vi.fn(); const onNewGame = vi.fn();
+  renderCityBonus(root, s, onDone, { onNewGame });
+  root.querySelector<HTMLButtonElement>('button[data-city]')!.click();       // answer, which schedules the move on
+  const byText = (t: string) => [...root.querySelectorAll('button')].find(b => b.textContent === t)!;
+  byText('משחק חדש').click(); byText('כן, משחק חדש').click();
+  expect(onNewGame).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(5000);
+  expect(onDone).not.toHaveBeenCalled();
+});

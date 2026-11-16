@@ -142,3 +142,44 @@ test('after the tab was hidden during a problem, music comes back only when the 
   expect(audio.resumeMusic).toHaveBeenCalled();
   delete (document as unknown as Record<string, unknown>).hidden;
 });
+
+test('a new game can be started from the pause menu without reloading, and the old game is gone', async () => {
+  const { root, audio } = boot();
+  set(root.querySelector<HTMLInputElement>('[name=name]')!, 'נועה');
+  root.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+  await flush();
+  root.querySelector<HTMLButtonElement>('.pause-btn')!.click();
+  const byText = (t: string) => [...root.querySelectorAll('button')].find(b => b.textContent === t)!;
+  byText('משחק חדש').click(); byText('כן, משחק חדש').click();
+  expect(root.querySelector('h1')!.textContent).toBe('חשבון בעננים');
+  expect(root.querySelector('.game')).toBeNull();
+  expect(audio.pauseMusic).toHaveBeenCalled();
+  // time passing does not touch the abandoned game, and a fresh game starts normally
+  t += 120000; await vi.advanceTimersByTimeAsync(5000);
+  expect(root.querySelector('.game')).toBeNull();
+  set(root.querySelector<HTMLInputElement>('[name=name]')!, 'דן');
+  root.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+  await flush();
+  expect(root.querySelector('.status-round')!.textContent).toBe('סבב 1 מתוך 3');
+  expect(root.querySelector('.status-name')!.textContent).toBe('דן');
+});
+
+test('a new game can be started from the round summary and from the city question', async () => {
+  const { root } = boot();
+  set(root.querySelector<HTMLInputElement>('[name=name]')!, 'נועה');
+  root.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+  await flush(); await playRoundByTimeouts(root);
+  const byText = (t: string) => [...root.querySelectorAll('button')].find(b => b.textContent === t)!;
+  byText('משחק חדש').click(); byText('כן, משחק חדש').click();
+  expect(root.querySelector('h1')).not.toBeNull();
+  // again, from the city question
+  set(root.querySelector<HTMLInputElement>('[name=name]')!, 'נועה');
+  root.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
+  await flush(); await playRoundByTimeouts(root);
+  byText('המשך').click();
+  expect(root.querySelector('.city-bonus')).not.toBeNull();
+  byText('משחק חדש').click(); byText('כן, משחק חדש').click();
+  expect(root.querySelector('h1')!.textContent).toBe('חשבון בעננים');
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(root.querySelector('.city-bonus')).toBeNull();
+});

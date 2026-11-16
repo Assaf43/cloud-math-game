@@ -32,6 +32,12 @@ export function startApp(root: HTMLElement, deps: AppDeps): void {
     else if (musicWanted && !game?.isPaused) deps.audio.resumeMusic();
   });
 
+  const newGame = () => {
+    musicWanted = false;
+    deps.audio.pauseMusic();
+    showSetup();
+  };
+
   const showSetup = () => {
     game?.destroy(); game = null; session = null; musicWanted = false;
     renderSetup(root, deps.storage, startGame);
@@ -53,10 +59,11 @@ export function startApp(root: HTMLElement, deps: AppDeps): void {
       rng: createRng(deps.seed()),
       roundCardMs: deps.roundCardMs,
       onMuteChange: m => deps.storage.setMuted(m),
+      onNewGame: newGame,
       fetchWeather: async city => (lastWeather = await deps.fetchWeather(city, deps.seed())),
       onRoundEnd: () => {
         game?.destroy(); game = null;
-        renderRoundSummary(root, current, () => showCity(current));
+        renderRoundSummary(root, current, () => showCity(current), newGame);
       },
     });
     await game.start();
@@ -72,7 +79,7 @@ export function startApp(root: HTMLElement, deps: AppDeps): void {
       } else {
         void playRound();
       }
-    }, { playSuccess: () => deps.audio.playSuccess(), weather: lastWeather });
+    }, { playSuccess: () => deps.audio.playSuccess(), weather: lastWeather, onNewGame: newGame });
   };
 
   showSetup();

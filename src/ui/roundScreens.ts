@@ -3,6 +3,7 @@ import type { Session } from '../game/session';
 import { CITY_BONUS } from '../game/scoring';
 import { SceneView } from '../scene/sceneView';
 import { timeOfDay } from '../scene/timeOfDay';
+import { newGameControl } from './newGameControl';
 
 const CITY_FEEDBACK_MS = 1500;
 
@@ -21,7 +22,7 @@ function stat(label: string, value: string): HTMLElement {
   return row;
 }
 
-export function renderRoundSummary(root: HTMLElement, session: Session, onContinue: () => void): void {
+export function renderRoundSummary(root: HTMLElement, session: Session, onContinue: () => void, onNewGame?: () => void): void {
   const r = session.rounds[session.roundIndex];
   const card = el('main', 'card summary');
   card.append(
@@ -34,6 +35,7 @@ export function renderRoundSummary(root: HTMLElement, session: Session, onContin
   next.type = 'button';
   next.addEventListener('click', onContinue);
   card.append(next);
+  if (onNewGame) card.append(newGameControl(onNewGame));
   root.replaceChildren(card);
 }
 
@@ -41,6 +43,7 @@ export interface CityBonusOptions {
   playSuccess?: () => void;
   weather?: WeatherState;        // keeps the round's weather behind the skyline
   feedbackMs?: number;
+  onNewGame?: () => void;        // leaving for a new game cancels the move on to the next round
 }
 
 /** "Which city are we in?": the skyline stays visible, a hint, four choices. */
@@ -59,6 +62,8 @@ export function renderCityBonus(root: HTMLElement, session: Session, onDone: () 
     return b;
   });
   let answered = false;
+  let left = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   buttons.forEach(b => b.addEventListener('click', () => {
     if (answered) return;
     answered = true;
@@ -72,9 +77,11 @@ export function renderCityBonus(root: HTMLElement, session: Session, onDone: () 
       b.classList.add('is-wrong');
       result.textContent = `זו הייתה ${session.city.name}`;
     }
-    setTimeout(() => { session.advance(); onDone(); }, options.feedbackMs ?? CITY_FEEDBACK_MS);
+    timer = setTimeout(() => { if (!left) { session.advance(); onDone(); } }, options.feedbackMs ?? CITY_FEEDBACK_MS);
   }));
   choices.append(...buttons);
   card.append(el('h2', undefined, 'באיזו עיר אנחנו?'), sky, el('p', 'city-hint', session.city.hint), choices, result);
+  const { onNewGame } = options;
+  if (onNewGame) card.append(newGameControl(() => { left = true; if (timer !== null) clearTimeout(timer); onNewGame(); }));
   root.replaceChildren(card);
 }
