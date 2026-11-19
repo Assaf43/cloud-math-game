@@ -13,9 +13,17 @@ it.each([
   expect(exerciseText(x)).toBe(text); expect(a.d === 1 ? `${a.n}` : `${a.n}/${a.d}`).toBe(answer);
 });
 it.each([['', 'empty'], ['   ', 'empty'], ['שלוש ועוד שתיים', 'letters'], ['48', 'syntax'], ['48 × ', 'syntax'],
-  ['(2 + 3', 'syntax'], ['3/0 + 1', 'syntax'], ['▢ + ▢ = 4', 'syntax'], ['2 + ▢', 'syntax'], ['4 ++ 4', 'syntax']])
+  ['(2 + 3', 'syntax'], ['3/0 + 1', 'syntax'], ['▢ + ▢ = 4', 'syntax'], ['2 + ▢', 'syntax'], ['4 ++ 4', 'syntax'], ['5 = ?', 'syntax'], ['2.5 = ?', 'syntax']])
   ('rejects %s', (input, error) => expect(parseExercise(input)).toEqual({ ok: false, error }));
 it('evaluate throws on a negative result and on ÷ 0', () => {
   expect(() => exerciseAnswer(ok('3 − 5'))).toThrow(); expect(() => exerciseAnswer(ok('5 ÷ (2 − 2)'))).toThrow();
+});
+it('parses a mixed number conversion as a convert exercise', () => {
+  const x = ok('2 3/4 = ?');
+  expect(x.form === 'convert' && x.fraction.kind).toBe('mixed');
+});
+it('refuses values beyond exact integer range instead of returning a wrong one', () => {
+  const big = ok('99999999 × 99999999 + 1 − 99999999 × 99999999');
+  expect(() => exerciseAnswer(big)).toThrow('too large');
 });
 it('cuts input at MAX_INPUT', () => expect(normalize('1'.repeat(60)).length).toBe(40));

@@ -15,7 +15,7 @@ export type Exercise =
 export type ParseError = 'empty' | 'letters' | 'syntax';
 export const MAX_INPUT = 40;
 
-const BIDI = /[‎‏‪-‮⁦-⁩]/g;
+const BIDI = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 const ALT: Record<string, string> = { '*': '×', x: '×', X: '×', ':': '÷', '-': '−', '–': '−', '□': '▢', _: '▢' };
 
 /** Cleans what a child typed: no bidi marks, game symbols, single spaces, at most MAX_INPUT chars. */
@@ -44,7 +44,7 @@ function lexNumber(s: string, i: number): [Num, number] {
   let m = /^(\d+) (\d+)\/(\d+)/.exec(rest);
   if (m) {
     const [w, n, d] = [safeInt(m[1]), safeInt(m[2]), safeInt(m[3])];
-    if (d === 0) fail();
+    if (d === 0 || !Number.isSafeInteger(w * d + n)) fail();
     return [num('mixed', rat(w * d + n, d), `${w} ${n}/${d}`), i + m[0].length];
   }
   m = /^(\d+)\/(\d+)/.exec(rest);
@@ -56,6 +56,7 @@ function lexNumber(s: string, i: number): [Num, number] {
   m = /^(\d+)\.(\d+)/.exec(rest);
   if (m) {
     const places = m[2].length;
+    if (!Number.isSafeInteger(10 ** places)) fail();
     return [num('decimal', rat(safeInt(m[1] + m[2]), 10 ** places), `${safeInt(m[1])}.${m[2]}`, places), i + m[0].length];
   }
   m = /^\d+/.exec(rest)!;
@@ -117,8 +118,9 @@ function expandParts(t: Token[]): { numerator: number | null; denominator: numbe
 
 function parseTokens(t: Token[]): Exercise {
   const first = t[0];
+  if (isNum(first) && (first.kind === 'fraction' || first.kind === 'mixed')
+    && t.length === 3 && isSym(t[1], '=') && isSym(t[2], '?')) return { form: 'convert', fraction: first };
   if (isNum(first) && first.kind === 'fraction') {
-    if (t.length === 3 && isSym(t[1], '=') && isSym(t[2], '?')) return { form: 'convert', fraction: first };
     const parts = expandParts(t);
     if (parts) {
       if (parts.denominator === 0) fail();
@@ -154,13 +156,20 @@ export function parseExercise(input: string): { ok: true; exercise: Exercise } |
   }
 }
 
-const APPLY: Record<Op, (a: Rational, b: Rational) => Rational> = { '+': add, '−': sub, '×': mul, '÷': div };
+const OPS: Record<Op, (a: Rational, b: Rational) => Rational> = { '+': add, '−': sub, '×': mul, '÷': div };
+
+/** rational.ts works in plain doubles: refuse any operation whose intermediate products leave exact integer range. */
+function apply(op: Op, a: Rational, b: Rational): Rational {
+  const cross = [a.n * b.d, b.n * a.d, a.d * b.d, a.n * b.n];
+  if (![...cross, cross[0] + cross[1]].every(Number.isSafeInteger)) throw new Error('too large');
+  return OPS[op](a, b);
+}
 
 /** Throws on a Hole, a negative intermediate value, or ÷ 0 (sub and div do the throwing). */
 export function evaluate(e: Expr): Rational {
   if (e.type === 'num') return e.value;
   if (e.type === 'hole') throw new Error('hole has no value');
-  return APPLY[e.op](evaluate(e.left), evaluate(e.right));
+  return apply(e.op, evaluate(e.left), evaluate(e.right));
 }
 
 function render(e: Expr): string {
@@ -184,10 +193,10 @@ function solveMissing(left: Bin, result: Rational): Rational {
   const holeLeft = left.left.type === 'hole';
   const other = evaluate(holeLeft ? left.right : left.left);
   switch (left.op) {
-    case '+': return sub(result, other);
-    case '×': return div(result, other);
-    case '−': return holeLeft ? add(result, other) : sub(other, result);
-    case '÷': return holeLeft ? mul(result, other) : div(other, result);
+    case '+': return apply('−', result, other);
+    case '×': return apply('÷', result, other);
+    case '−': return holeLeft ? apply('+', result, other) : apply('−', other, result);
+    case '÷': return holeLeft ? apply('×', result, other) : apply('÷', other, result);
   }
 }
 
@@ -196,9 +205,8 @@ export function exerciseAnswer(x: Exercise): Rational {
     case 'plain': return evaluate(x.expr);
     case 'missing': return solveMissing(x.left, x.result.value);
     case 'convert': return x.fraction.value;
-    case 'expand': {
-      const { n, d } = x.known.value;
-      return x.numerator === null ? rat(n * x.denominator!, d) : rat(x.numerator * d, n);
-    }
+    case 'expand': return x.numerator === null
+      ? apply('×', x.known.value, rat(x.denominator!))   // ▢/den = known
+      : apply('÷', rat(x.numerator), x.known.value);     // num/▢ = known
   }
 }
