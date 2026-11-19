@@ -21,7 +21,11 @@ it('evaluate throws on a negative result and on ÷ 0', () => {
 it('parses a mixed number conversion as a convert exercise', () => {
   const x = ok('2 3/4 = ?');
   expect(x.form === 'convert' && x.fraction.kind).toBe('mixed');
+  expect(exerciseText(x)).toBe('2 3/4 = ?');
+  expect(exerciseAnswer(x)).toEqual({ n: 11, d: 4 });
 });
+it('still computes large values that stay within exact integer range', () =>
+  expect(exerciseAnswer(ok('99999 × 99999'))).toEqual({ n: 9999800001, d: 1 }));
 it('refuses values beyond exact integer range instead of returning a wrong one', () => {
   const big = ok('99999999 × 99999999 + 1 − 99999999 × 99999999');
   expect(() => exerciseAnswer(big)).toThrow('too large');
