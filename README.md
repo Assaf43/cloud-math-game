@@ -69,6 +69,62 @@ Curriculum sources:
 - New grade 3 curriculum: https://meyda.education.gov.il/files/Mazkirut_Pedagogit/math/primary-school/math2023/Newprogramgrade3.pdf
 - New curriculum page (all grades): https://pop.education.gov.il/tchumey_daat/matmatika/yesodi/oraat-math/new-curriculum
 
+## Test prep (הכנה למבחן)
+
+A practice mode for an upcoming school test. From the setup screen, **הכנה למבחן** opens the player's packs. The child
+types 3–5 exercises from the test material into a *pack* (on the game's own keypad, so the phone's keyboard never opens),
+and the game generates similar problems from them and plays 10 of them in the same sky, **without a timer**. A missed
+problem's kind comes back once later as a returning problem (darker clouds, worth 2 stars instead of 1). A right answer
+gets a small celebration: the clouds part and a ray of sun falls on it (still, with reduced motion). At the end,
+**הדרך** shows the way step by step for up to 3 missed kinds, with the typical slip when the picked answer matches one,
+and offers one similar problem to try, without a score. The summary shows the stars and how many were solved.
+
+Supported exercise forms, with whole numbers, fractions, mixed numbers and decimals where the grade allows:
+
+- one or more operations, with brackets: `48 × 6`, `3/4 + 1/8`, `2.5 − 0.75`, `6 × (2 + 3)`
+- a missing number: `▢ + 27 = 63`, `48 ÷ ▢ = 6`
+- expanding or reducing a fraction: `2/3 = ▢/12`
+- a fraction to a decimal: `3/4 = ?`
+
+For any other line the editor says calmly why it cannot be practised yet, and the rest of the pack still works.
+
+Decisions made with the owner while building it:
+
+- At **מתחיל** and **מתקדם** a generated problem keeps the digit counts of the typed example; **ממש מתקדם** may add a digit.
+- At **מתחיל** fraction denominators go up to at least 6: up to 6, or up to the example's largest denominator when
+  that is larger (at most 12).
+- The keypad has a `?` key, so a conversion such as `3/4 = ?` can be typed on a phone.
+
+What does not change: the regular game (**התחל**) is exactly as before. It still asks whole numbers only, fractions and
+decimals stay parked there (`parkedTopics`), and its timer, scoring, leaderboard and city bonus are untouched. Practice
+results never enter the leaderboard; a pack keeps per-kind counts and the last stars, under the same `localStorage` key.
+Leaving a practice from the pause menu records nothing. When the device cannot store a pack, the practice starts anyway
+and the summary says the pack was not kept. There is no "wrong" wording, red flashing, failure sound or predicted grade.
+
+Where the code lives:
+
+| Area | File |
+|---|---|
+| Reading a typed exercise (exact arithmetic, never `eval`) | `src/prep/expr.ts` |
+| Exercise kinds, their labels and the reasons a line is not supported | `src/prep/shape.ts` |
+| Generating similar problems and their answer choices | `src/prep/generate.ts` |
+| Typical slips and their sentences | `src/prep/slips.ts` |
+| Step-by-step explanations | `src/prep/explain.ts` |
+| Packs, the practice session | `src/prep/pack.ts`, `src/prep/prepSession.ts` |
+| Screens | `src/ui/prepPacksScreen.ts`, `prepEditScreen.ts`, `prepKeypad.ts`, `prepEndScreens.ts`; routing in `src/app.ts` |
+
+Every answer is computed in code and checked against an independent evaluation in the tests; nothing is shown whose
+answer was not computed.
+
+- **Adding a slip:** add its id to `SlipId` and its sentence to `SLIP_TEXT` in `src/prep/slips.ts` (calm wording: "נראה
+  ש…", never "טעית"), then add a `note(...)` line in `slips()` that computes the value a child would get. Values equal to
+  the right answer, negative or not exact are dropped by `note`. The slip becomes a wrong choice in generated problems,
+  and `הדרך` shows its sentence when the child picked it. Add a case to `tests/prep/slips.test.ts`.
+- **Adding an explanation method:** write a function in `src/prep/explain.ts` that returns the steps (short LTR lines,
+  at most 5) or `null` when it does not apply, and call it from `singleOperator` or `stepsFor`. Anything without a method
+  falls back to one line, `exercise = answer`. `tests/prep/explain.test.ts` checks, for generated problems of every
+  kind, that there are 1–5 steps, every equality is true and the last step ends with the computed answer.
+
 ## Rules worth knowing before changing things
 
 - **Cloud fairness.** Every answer is fully exposed for at least 1 s at a time and never hidden (or partly hidden)
@@ -80,6 +136,6 @@ Curriculum sources:
 - **Mental-math sized numbers.** Children answer in their heads, in about 30 seconds, by tapping one of a few answers, so
   generators keep numbers friendly (for example no 3-digit multipliers, divisors that are easy to work with, small common
   denominators). `tests/problems/difficulty.test.ts` holds the caps per grade and level; change them there on purpose.
-- **Player text** (the name) is only ever put on the page with `textContent`.
+- **Player text** (the name, a pack's name and its exercises) is only ever put on the page with `textContent`.
 - **Weather** comes from Open-Meteo with no key; if the request fails or takes longer than 3 s a random weather is
   used. The credit "Weather data by Open-Meteo.com" is shown on the final screen.

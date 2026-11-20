@@ -221,8 +221,48 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 .prep-sample-list li { text-align: right; unicode-bidi: isolate; }   /* each problem reads left to right (dir="ltr") */
 .prep-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .prep-actions button { flex: 1 1 auto; }
+/* the way (review) and the practice summary: calm cards, steps in large clear digits, no red and no "wrong" marks */
+.prep-review-card { display: grid; gap: 8px; padding: 12px; border: 2px solid #c3d3ea; border-radius: 14px; background: #fff; }
+.prep-review-exercise, .prep-twin-exercise {
+  margin: 0; font-size: 1.6rem; font-weight: 900; font-variant-numeric: tabular-nums; text-align: center; unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+.prep-review-answer { margin: 0; font-size: 1.15rem; font-weight: 800; color: #15336b; }
+.prep-steps {
+  margin: 0; padding: 8px 12px 8px 2.2em; display: grid; gap: 4px; border-radius: 10px; background: #f3f7fd; unicode-bidi: isolate;
+  font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; overflow-wrap: anywhere;
+}
+.prep-slip { margin: 0; padding: 8px 12px; border-radius: 10px; background: #fff6d6; color: #6b4a00; font-weight: 700; line-height: 1.45; }
+.prep-twin { display: grid; gap: 8px; }
+.prep-twin-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.prep-choice {
+  min-width: 0; min-height: 52px; padding: 6px 8px; border: 2px solid #c3d3ea; border-radius: 14px; background: #fff; color: var(--ink);
+  font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; cursor: pointer; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.prep-choice:disabled { cursor: default; }
+.prep-choice:disabled:not(.is-sunlit) { opacity: .6; }
+.prep-choice.is-sunlit { border-color: var(--good); background: #fffbe6; box-shadow: 0 0 0 3px var(--good), 0 0 16px 6px rgba(255, 214, 90, .8); }
+.prep-twin-result { margin: 0; min-height: 1.4em; font-size: 1.4rem; font-weight: 900; color: #15336b; text-align: center; }
+.prep-twin-result:empty { min-height: 0; }
+.prep-stat { margin: 0; font-size: 1.35rem; font-weight: 800; text-align: center; color: var(--ink); }
+.prep-notice { margin: 0; padding: 8px 12px; border-radius: 10px; background: #e6eefb; color: var(--ink-soft); font-weight: 700; line-height: 1.45; }
+.prep-perfect {
+  position: relative; justify-self: center; margin: 4px 0; padding: 8px 22px; border-radius: 999px; background: #ffe27a; color: #6b4a00;
+  font-size: clamp(1.5rem, 7vw, 2.1rem); font-weight: 900; box-shadow: 0 0 18px 6px rgba(255, 214, 90, .7);
+  animation: pop .5s ease-out;
+}
+.prep-perfect::after {
+  content: "\2605"; position: absolute; left: 50%; top: 50%; pointer-events: none;
+  font-size: .8em; line-height: 1; color: transparent; opacity: 0;
+  text-shadow: -4em -.9em 0 #ffd447, 4em -.9em 0 #ffe27a, -3.4em 1em 0 #fff1a8, 3.4em 1em 0 #ffd447,
+    0 -1.6em 0 #fff1a8, -5em .1em 0 #ffe27a, 5em .1em 0 #fff1a8, 0 1.6em 0 #ffe27a;
+  transform: translate(-50%, -50%);
+  animation: prep-stars 1200ms ease-out .2s forwards;
+}
 @media (prefers-reduced-motion: reduce) {
   .keypad-key:active { transform: none; }
+  .prep-perfect, .prep-perfect::after { animation: none !important; }   /* the stars stay at opacity 0 */
 }
 
 /* ---------- shared widgets ---------- */
