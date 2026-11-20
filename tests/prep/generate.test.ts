@@ -58,3 +58,8 @@ it('beginner 1/2 + 1/4 keeps denominators ≤ 6, one a multiple of the other', (
     expect(a % b === 0 || b % a === 0).toBe(true);
   }
 });
+it('gives up quickly on shapes that yield nothing', () => {   // the pack editor calls canVary on every keystroke
+  const start = performance.now();
+  for (const e of ['2/3 = ▢/10', '2 × 2', '1 + 1']) expect(canVary(shape(e), 5)).toBe(false);
+  expect(performance.now() - start).toBeLessThan(200);
+});

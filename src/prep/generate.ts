@@ -16,6 +16,7 @@ const MAX_DENOMINATOR = 24;
 const GRADE_MAX_INT: Record<Grade, number> = { 3: 1000, 4: 10000, 5: 100000, 6: 100000 };
 const DIFFICULTIES: Difficulty[] = ['beginner', 'advanced', 'expert'];
 const VARY_CALLS = 400;
+const MAX_MISSES = 3;          // canVary gives up on a difficulty after this many null calls in a row
 
 /** One generateSimilar call: the difficulty, the grade cap, the rng, and the example's largest int leaf (expert growth). */
 interface Ctx { d: Difficulty; cap: number; rng: Rng; largest: Num | null }
@@ -268,13 +269,14 @@ export function generateSimilar(shape: Shape, difficulty: Difficulty, grade: Gra
   return null;
 }
 
-/** True when every difficulty yields at least 5 different problems in 400 calls. */
+/** True when every difficulty yields at least 5 different problems in 400 calls (stops after 3 empty calls in a row). */
 export function canVary(shape: Shape, grade: Grade): boolean {
   return DIFFICULTIES.every((d) => {
     const rng = createRng(1);
     const seen = new Set<string>();
-    for (let i = 0; i < VARY_CALLS && seen.size < 5; i++) {
+    for (let i = 0, misses = 0; i < VARY_CALLS && seen.size < 5 && misses < MAX_MISSES; i++) {
       const p = generateSimilar(shape, d, grade, rng, new Set());
+      misses = p ? 0 : misses + 1;
       if (p) seen.add(p.text);
     }
     return seen.size >= 5;
