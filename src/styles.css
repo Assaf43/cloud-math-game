@@ -172,6 +172,59 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) rotate(18deg); }
 }
 
+/* test practice screens: the entry button, the pack list and the pack editor. Phone first, nothing relies on hover,
+   and a line that cannot be practised is told in the same calm grey as the rest of the secondary text. */
+.prep {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); background: linear-gradient(#8ecbff, #e8f4ff);
+}
+.prep h1 { margin: 0; font-size: clamp(1.7rem, 7vw, 2.6rem); color: #15336b; text-shadow: 0 2px 0 #fff; }
+.prep-panel {
+  width: min(100%, 460px); display: grid; gap: 12px; padding: 16px 12px;
+  background: rgba(255, 255, 255, .92); border-radius: 20px; box-shadow: 0 8px 24px rgba(20, 50, 100, .2);
+}
+.setup button.secondary, .prep button.secondary {
+  min-height: 48px; padding: 0 20px; border: 0; border-radius: 14px; background: #e6eefb; color: var(--ink);
+  font-size: 1.1rem; font-weight: 800; cursor: pointer; touch-action: manipulation;
+}
+.setup button.secondary:disabled, .prep button.secondary:disabled { opacity: .5; cursor: not-allowed; }
+.prep button.primary { touch-action: manipulation; }
+.prep-empty { margin: 4px 0; font-size: 1.05rem; line-height: 1.5; color: var(--ink-soft); }
+.prep-pack-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.prep-pack { display: grid; gap: 6px; padding: 12px; border: 2px solid #c3d3ea; border-radius: 14px; background: #fff; }
+.prep-pack-name { margin: 0; font-size: 1.25rem; color: #15336b; overflow-wrap: anywhere; }
+.prep-pack-info { margin: 0; font-weight: 700; color: var(--ink-soft); }
+.prep-pack-stars { color: #6b4a00; }
+.prep-pack-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.prep-pack-actions button { flex: 1 1 auto; min-height: 44px; padding: 0 14px; font-size: 1.05rem; }
+.prep-pack-question { flex: 1 1 100%; margin: 0; font-weight: 800; }
+.prep button.prep-delete { background: #ffe9c7; color: #6b4a00; }
+.prep-rows { display: grid; gap: 8px; }
+.prep-row-box { display: grid; gap: 2px; }
+.prep input.prep-row {
+  width: 100%; font: inherit; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  text-align: left; padding: 8px 12px; border: 2px solid #c3d3ea; border-radius: 10px; background: #fff; color: var(--ink);
+}
+.prep input.prep-row:focus { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.prep-row-status { margin: 0; min-height: 0; font-size: .95rem; font-weight: 600; color: var(--ink-soft); }
+.prep-row-status:empty { display: none; }
+.keypad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.keypad-key {
+  min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 12px; background: #e6eefb; color: var(--ink);
+  font-size: 1.45rem; font-weight: 800; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 0 #c3d3ea; user-select: none; -webkit-user-select: none;
+}
+.keypad-key:active { transform: translateY(2px); box-shadow: none; background: #d4e2f7; }
+.prep-summary, .prep-hint { margin: 0; font-weight: 700; color: var(--ink-soft); }
+.prep-samples h2 { margin: 0 0 6px; font-size: 1.05rem; color: #15336b; }
+.prep-sample-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 1.2rem; font-weight: 700; }
+.prep-sample-list li { text-align: right; unicode-bidi: isolate; }   /* each problem reads left to right (dir="ltr") */
+.prep-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.prep-actions button { flex: 1 1 auto; }
+@media (prefers-reduced-motion: reduce) {
+  .keypad-key:active { transform: none; }
+}
+
 /* ---------- shared widgets ---------- */
 button { font-family: inherit; }
 button.primary {
