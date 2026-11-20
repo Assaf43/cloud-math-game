@@ -120,6 +120,43 @@ test('clouds block taps on the answers they cover (CSS), puffs and layers do not
   expect(css).toMatch(/\.scene-layer\s*,?[^{]*\{[^}]*pointer-events:\s*none/);
 });
 
+test('celebrate lights the answer; setAnswers and clear leave no celebration behind', () => {
+  const { root, v, slots, lanes } = setup();
+  v.setAnswers([1, 2, 3, 4].map(intAnswer), slots, lanes);
+  v.celebrate('3', false);
+  expect(root.classList.contains('is-celebrating')).toBe(true); expect(root.classList.contains('is-celebrating-big')).toBe(false);
+  expect(root.querySelector('[data-answer="3"]')!.classList.contains('is-sunlit')).toBe(true);
+  expect(root.querySelectorAll('.is-sunlit')).toHaveLength(1);
+  v.setAnswers([5, 6, 7, 8].map(intAnswer), slots, lanes);
+  expect(root.classList.contains('is-celebrating')).toBe(false);
+  expect(root.querySelector('.is-sunlit')).toBeNull();
+  v.celebrate('6', true);
+  expect(root.classList.contains('is-celebrating')).toBe(true); expect(root.classList.contains('is-celebrating-big')).toBe(true);
+  v.setAnswers([1, 2, 3, 4].map(intAnswer), slots, lanes);
+  expect(root.classList.contains('is-celebrating')).toBe(false); expect(root.classList.contains('is-celebrating-big')).toBe(false);
+  v.celebrate('2', true); v.clear();
+  expect(root.classList.contains('is-celebrating')).toBe(false); expect(root.classList.contains('is-celebrating-big')).toBe(false);
+});
+
+test('setStubborn toggles dark clouds and only setStubborn changes it', () => {
+  const { root, v, slots, lanes } = setup();
+  v.setStubborn(true); expect(root.classList.contains('is-stubborn')).toBe(true);
+  v.setAnswers([1, 2, 3, 4].map(intAnswer), slots, lanes); v.clear();
+  expect(root.classList.contains('is-stubborn')).toBe(true);
+  v.setStubborn(false); expect(root.classList.contains('is-stubborn')).toBe(false);
+});
+
+test('prep visuals live in CSS, finish within the reveal and stand still for reduced motion', () => {
+  const css = readFileSync('src/styles.css', 'utf8');
+  for (const sel of ['.scene.is-celebrating', '.scene.is-celebrating-big', '.answer.is-sunlit', '.scene.is-stubborn'])
+    expect(css).toContain(sel);
+  const durations = [...css.matchAll(/animation:\s*(?:prep-[\w-]+)\s+([\d.]+)(m?s)/g)].map(m => parseFloat(m[1]) * (m[2] === 's' ? 1000 : 1));
+  expect(durations.length).toBeGreaterThan(0);
+  expect(durations.every(ms => ms <= 1500)).toBe(true);
+  const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+  expect(reduced).toMatch(/is-celebrating[^{]*\{[^}]*animation:\s*none/);
+});
+
 test('taps with no handler set do nothing and do not throw', () => {
   const { root, v, slots, lanes } = setup();
   v.setAnswers([1, 2, 3, 4].map(intAnswer), slots, lanes);

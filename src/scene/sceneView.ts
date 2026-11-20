@@ -146,7 +146,21 @@ export class SceneView {
       if (a.dataset.answer === answerText) a.classList.add('is-correct');
   }
 
+  /** Practice only: the clouds part and a sun ray lights the right answer; `big` adds a burst of stars (a returning problem). */
+  celebrate(answerText: string, big: boolean): void {
+    this.root.classList.add('is-celebrating');
+    this.root.classList.toggle('is-celebrating-big', big);
+    for (const a of this.answersLayer.querySelectorAll<HTMLElement>('[data-answer]'))
+      if (a.dataset.answer === answerText) a.classList.add('is-sunlit');
+  }
+
+  /** Practice only: darker clouds while a returning problem is open. */
+  setStubborn(on: boolean): void {
+    this.root.classList.toggle('is-stubborn', on);
+  }
+
   clear(): void {
+    this.root.classList.remove('is-celebrating', 'is-celebrating-big');
     this.answersLayer.replaceChildren();
     this.cloudsLayer.replaceChildren();
     this.puffsLayer.replaceChildren();

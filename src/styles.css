@@ -83,6 +83,10 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 @media (prefers-reduced-motion: reduce) {
   .scene-rain, .scene-flash { animation: none !important; }
   .scene[data-weather="storm"] .scene-flash { opacity: 0; }
+  /* test practice: a still highlight instead of parting clouds, a growing ray and a star burst */
+  .scene.is-celebrating .cloud, .scene.is-celebrating .cloud-puff,
+  .answer.is-sunlit::before, .answer.is-sunlit::after { animation: none !important; }
+  .scene.is-celebrating .cloud, .scene.is-celebrating .cloud-puff { opacity: .35; }   /* the stars stay at opacity 0 */
 }
 
 .scene-skyline { position: absolute; left: 0; right: 0; bottom: 0; height: min(46%, 34cqw); color: var(--skyline); pointer-events: none; }
@@ -133,6 +137,40 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 /* decorative cumulus puffs: behind the answers, never take taps */
 .cloud-puff { position: absolute; z-index: 1; pointer-events: none; height: calc(var(--pill-h) * 1.1); margin-top: calc(var(--pill-h) * -.05); }
 .cloud-puff svg { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; aspect-ratio: 100 / 50; overflow: visible; }
+
+/* ---------- test practice visuals (prep mode only) ----------
+   is-celebrating: the clouds part and fade, a soft sun ray falls on the right answer (is-sunlit).
+   is-celebrating-big (a returning problem solved): the same plus a short burst of stars.
+   is-stubborn: darker clouds while a returning problem is open; the answers keep their white pills.
+   Only transform and opacity move, and everything settles within the 1500 ms reveal. */
+.scene.is-stubborn .cloud, .scene.is-stubborn .cloud-puff { --cloud: #7c879e; --cloud-mid: #6a748c; --cloud-shade: #586179; }
+.scene.is-celebrating .cloud:nth-child(odd), .scene.is-celebrating .cloud-puff:nth-child(odd) { animation: prep-part-left 900ms ease-out forwards; }
+.scene.is-celebrating .cloud:nth-child(even), .scene.is-celebrating .cloud-puff:nth-child(even) { animation: prep-part-right 900ms ease-out forwards; }
+@keyframes prep-part-left { to { transform: translateX(-70%); opacity: 0; } }
+@keyframes prep-part-right { to { transform: translateX(70%); opacity: 0; } }
+.answer.is-sunlit { box-shadow: 0 0 0 3px var(--good), 0 0 16px 6px rgba(255, 214, 90, .8); }
+.answer.is-sunlit::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  left: 50%; bottom: 70%; width: 150%; height: 6em;
+  background: linear-gradient(to bottom, rgba(255, 244, 190, 0), rgba(255, 228, 130, .6));
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%); transform-origin: 50% 100%; opacity: .85;
+  animation: prep-ray 1000ms ease-out;
+}
+@keyframes prep-ray { from { opacity: 0; transform: translateX(-50%) scaleY(.2); } 45% { opacity: 1; } }
+.scene.is-celebrating-big .answer.is-sunlit::after {
+  content: "\2605"; position: absolute; left: 50%; top: 50%; pointer-events: none;
+  font-size: .8em; line-height: 1; color: transparent; opacity: 0;
+  text-shadow: -1.7em -.7em 0 #ffd447, 1.7em -.7em 0 #ffe27a, -1.3em .9em 0 #fff1a8, 1.3em .9em 0 #ffd447,
+    0 -1.3em 0 #fff1a8, -2.3em .1em 0 #ffe27a, 2.3em .1em 0 #fff1a8, 0 1.25em 0 #ffe27a;
+  transform: translate(-50%, -50%);
+  animation: prep-stars 1200ms ease-out forwards;
+}
+@keyframes prep-stars {
+  0%, 12% { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) rotate(18deg); }
+}
 
 /* ---------- shared widgets ---------- */
 button { font-family: inherit; }
