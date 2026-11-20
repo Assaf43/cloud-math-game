@@ -1,4 +1,5 @@
 import { Storage, type ScoreEntry } from '../../src/storage/storage';
+import type { Pack } from '../../src/prep/pack';
 
 const KEY = 'cloud-math:v1';
 function memory(initial: Record<string, string> = {}) {
@@ -104,4 +105,108 @@ test('default backend is window.localStorage when available', () => {
 test('a score that could not be saved is not reported as a personal best', () => {
   const s = new Storage({ getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } });
   expect(s.addScore(score()).isPersonalBest).toBe(false);
+});
+
+// ---- packs ----
+const pack = (over: Partial<Pack> = {}): Pack => ({
+  id: 'p1', owner: 'דנה', name: 'מבחן כפל', grade: 5, examples: ['48 × 6', '52 × 7', '3 + 4'],
+  createdAt: '2026-11-19T10:00:00.000Z', shapes: {}, lastStars: null, ...over,
+});
+
+test('a saved pack is returned for its owner; saving the same id replaces it', () => {
+  const s = new Storage(memory());
+  expect(s.savePack(pack())).toBe(true);
+  expect(s.packs('דנה')).toEqual([pack()]);
+  expect(s.savePack(pack({ name: 'חדש' }))).toBe(true);
+  expect(s.packs('דנה')).toEqual([pack({ name: 'חדש' })]);
+});
+test('packs belong to their owner and come back newest first', () => {
+  const s = new Storage(memory());
+  s.savePack(pack({ id: 'a', createdAt: '2026-11-01T00:00:00.000Z' }));
+  s.savePack(pack({ id: 'b', createdAt: '2026-11-03T00:00:00.000Z' }));
+  s.savePack(pack({ id: 'c', createdAt: '2026-11-02T00:00:00.000Z' }));
+  s.savePack(pack({ id: 'd', owner: 'נועה' }));
+  expect(s.packs('דנה').map(p => p.id)).toEqual(['b', 'c', 'a']);
+  expect(s.packs('נועה').map(p => p.id)).toEqual(['d']);
+  expect(s.packs('  דנה ').map(p => p.id)).toEqual(['b', 'c', 'a']);
+});
+test('equal timestamps: the later-saved pack comes first', () => {
+  const s = new Storage(memory());
+  s.savePack(pack({ id: 'a' })); s.savePack(pack({ id: 'b' }));
+  expect(s.packs('דנה').map(p => p.id)).toEqual(['b', 'a']);
+});
+test('deletePack removes the pack; an unknown id does nothing', () => {
+  const s = new Storage(memory());
+  s.savePack(pack({ id: 'a' })); s.savePack(pack({ id: 'b' }));
+  s.deletePack('a');
+  expect(s.packs('דנה').map(p => p.id)).toEqual(['b']);
+  expect(() => s.deletePack('nope')).not.toThrow();
+  expect(s.packs('דנה')).toHaveLength(1);
+});
+test('a 21st pack for one owner is refused, replacing an existing one is not', () => {
+  const s = new Storage(memory());
+  for (let i = 0; i < 20; i++) expect(s.savePack(pack({ id: `p${i}` }))).toBe(true);
+  expect(s.savePack(pack({ id: 'extra' }))).toBe(false);
+  expect(s.packs('דנה')).toHaveLength(20);
+  expect(s.savePack(pack({ id: 'p3', name: 'עודכן' }))).toBe(true);
+  expect(s.savePack(pack({ id: 'other', owner: 'נועה' }))).toBe(true);
+});
+test('recordPractice adds up per shape, sets lastMissed and lastStars', () => {
+  const s = new Storage(memory());
+  s.savePack(pack());
+  s.recordPractice('p1', { k: { seen: 3, wrong: 1 } }, 9);
+  s.recordPractice('p1', { k: { seen: 3, wrong: 1 } }, 9);
+  const p = s.packs('דנה')[0];
+  expect(p.shapes.k).toEqual({ seen: 6, wrong: 2, lastMissed: true });
+  expect(p.lastStars).toBe(9);
+  s.recordPractice('p1', { k: { seen: 2, wrong: 0 } }, 12);
+  expect(s.packs('דנה')[0].shapes.k).toEqual({ seen: 8, wrong: 2, lastMissed: false });
+  expect(s.packs('דנה')[0].lastStars).toBe(12);
+});
+test('recordPractice with an unknown id does nothing', () => {
+  const m = memory(); const s = new Storage(m);
+  s.savePack(pack());
+  const before = m.data[KEY];
+  s.recordPractice('nope', { k: { seen: 1, wrong: 0 } }, 3);
+  expect(m.data[KEY]).toBe(before);
+});
+test('data written without packs still yields its profiles and scores; a packs write keeps them', () => {
+  const old = JSON.stringify({ profiles: [{ name: 'נועה', age: 10, grade: 5 }], scores: [score()], muted: true });
+  const m = memory({ [KEY]: old }); const s = new Storage(m);
+  expect(s.profiles()).toEqual([{ name: 'נועה', age: 10, grade: 5 }]);
+  expect(s.topScores()).toEqual([score()]);
+  expect(s.packs('דנה')).toEqual([]);
+  expect(s.savePack(pack())).toBe(true);
+  const t = new Storage(m);
+  expect(t.profiles()).toHaveLength(1); expect(t.topScores()).toEqual([score()]); expect(t.muted()).toBe(true);
+  t.addScore(score({ avg: 1 })); t.setMuted(false); t.saveProfile({ name: 'x', age: 8, grade: 3 });
+  expect(t.packs('דנה')).toEqual([pack()]);
+});
+test('malformed pack entries are dropped, the valid one is kept', () => {
+  const bad = [
+    { ...pack({ id: 'g' }), grade: 7 }, { ...pack({ id: 'e' }), examples: [1] }, { ...pack({ id: 's' }), shapes: { k: { seen: 1 } } },
+    { ...pack({ id: 'l' }), lastStars: 'x' }, { ...pack({ id: 'a' }), shapes: [] },
+  ];
+  const m = memory({ [KEY]: JSON.stringify({ profiles: [], scores: [], muted: false, packs: [{}, 5, null, ...bad, pack()] }) });
+  expect(new Storage(m).packs('דנה')).toEqual([pack()]);
+  expect(new Storage(memory({ [KEY]: '{"packs":"x"}' })).packs('דנה')).toEqual([]);
+});
+test('savePack returns false without throwing when nothing can be written', () => {
+  const throwing = new Storage({ getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } });
+  expect(throwing.savePack(pack())).toBe(false);
+  expect(new Storage(null).savePack(pack())).toBe(false);
+});
+test('savePack cuts the name to 30 and keeps at most 5 trimmed examples, each at most 40 chars', () => {
+  const s = new Storage(memory());
+  s.savePack(pack({ name: `  ${'ב'.repeat(40)}  `, examples: ['1 + 1', '', '  2 + 2 ', '3 + 3', '4 + 4', '5 + 5', '6 + 6'] }));
+  const p = s.packs('דנה')[0];
+  expect(p.name).toBe('ב'.repeat(30));
+  expect(p.examples).toEqual(['1 + 1', '2 + 2', '3 + 3', '4 + 4', '5 + 5']);
+  s.savePack(pack({ id: 'long', examples: ['9'.repeat(60)] }));
+  expect(s.packs('דנה').find(x => x.id === 'long')!.examples[0]).toHaveLength(40);
+});
+test('the pack owner is cleaned like a profile name', () => {
+  const s = new Storage(memory());
+  s.savePack(pack({ owner: `  ${'x'.repeat(30)}` }));
+  expect(s.packs('x'.repeat(20))).toHaveLength(1);
 });
