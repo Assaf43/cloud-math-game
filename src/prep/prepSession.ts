@@ -4,7 +4,7 @@ import type { ChooseResult } from '../game/session';
 import { eq } from '../problems/rational';
 import { generateSimilar } from './generate';
 import type { PrepProblem } from './generate';
-import { packShapes } from './pack';
+import { analyzeLines, packShapes } from './pack';
 import type { Pack } from './pack';
 import type { Shape } from './shape';
 
@@ -12,6 +12,7 @@ export interface PrepConfig { name: string; grade: Grade; difficulty: Difficulty
 export interface Miss { problem: PrepProblem; picked: string }
 
 export const BASE_PROBLEMS = 10, TWIN_GAP = 2, MAX_REVIEW = 3;
+const GENERATE_TRIES = 5;                          // generateSimilar calls per shape in each avoid mode
 
 type PrepPhase = 'problem' | 'reveal' | 'finished';
 interface Pending { shape: Shape; dueAt: number }   // dueAt: number of problems shown when the twin may appear
@@ -22,7 +23,8 @@ export class PrepSession implements GameFlow {
   private readonly rng: Rng;
   private readonly _city: City;
   private readonly shapes: Shape[];
-  private readonly avoid = new Set<string>();      // every text shown so far
+  private readonly typed = new Set<string>();      // the canonical text of every supported line of the pack
+  private readonly avoid = new Set<string>();      // the typed lines and every text shown so far
   private readonly queue: Pending[] = [];          // twins waiting, oldest first
 
   private _phase: PrepPhase = 'problem';
@@ -40,7 +42,11 @@ export class PrepSession implements GameFlow {
     this.config = config;
     this.rng = rng;
     this._city = city;
+    for (const { analysis } of analyzeLines(config.pack.examples, config.pack.grade))
+      if (analysis.ok) this.typed.add(analysis.shape.exampleText);
+    for (const t of this.typed) this.avoid.add(t);
     this.showNext();
+    if (this._phase === 'finished') throw new Error('the pack cannot produce a first problem');
   }
 
   get playerName(): string { return this.config.name; }
@@ -57,7 +63,7 @@ export class PrepSession implements GameFlow {
   get results(): Record<string, { seen: number; wrong: number }> { return this._results; }
 
   status(): { round: string; problem: string; score: string } {
-    return { round: this.config.pack.name, problem: `תרגיל ${this._asked + 1}`, score: `⭐ ${this._stars}` };
+    return { round: this.config.pack.name, problem: `תרגיל ${this.shown}`, score: `⭐ ${this._stars}` };
   }
 
   choose(answerText: string, _elapsedMs: number): ChooseResult {
@@ -103,7 +109,7 @@ export class PrepSession implements GameFlow {
   /** A fresh problem of the same shape as a missed one, for the end screen. */
   makeTwin(miss: Miss): PrepProblem {
     const shape = this.shapes.find(s => s.key === miss.problem.shapeKey);
-    const fresh = shape && generateSimilar(shape, this.config.difficulty, this.config.grade, this.rng, new Set([miss.problem.text]));
+    const fresh = shape && generateSimilar(shape, this.config.difficulty, this.config.grade, this.rng, new Set([...this.typed, miss.problem.text]));
     return fresh ?? { ...miss.problem, stubborn: false };
   }
 
@@ -154,15 +160,20 @@ export class PrepSession implements GameFlow {
     return order;
   }
 
-  /** First shape of `candidates` that yields a new text; once its texts run out, an old one is allowed, but never the one just shown. */
+  /**
+   * First shape of `candidates` that yields a new text; once its texts run out, an old one is allowed, but never a typed
+   * line or the one just shown. generateSimilar can miss on a shape that is hard to hit, so each mode gets GENERATE_TRIES calls.
+   */
   private generate(candidates: Shape[], stubborn: boolean): PrepProblem | null {
     const { difficulty, grade } = this.config;
-    const justShown = this.shown > 0 ? new Set([this._problem.text]) : new Set<string>();
-    for (const shape of candidates) {
-      const p = generateSimilar(shape, difficulty, grade, this.rng, this.avoid)
-        ?? generateSimilar(shape, difficulty, grade, this.rng, justShown);
-      if (p) return { ...p, stubborn };
-    }
+    const relaxed = new Set(this.typed);
+    if (this.shown > 0) relaxed.add(this._problem.text);
+    for (const shape of candidates)
+      for (const avoid of [this.avoid, relaxed])
+        for (let i = 0; i < GENERATE_TRIES; i++) {
+          const p = generateSimilar(shape, difficulty, grade, this.rng, avoid);
+          if (p) return { ...p, stubborn };
+        }
     return null;
   }
 }

@@ -121,10 +121,16 @@ export function startApp(root: HTMLElement, deps: AppDeps): void {
   };
 
   const startPrep = (player: Profile, pack: Pack, difficulty: Difficulty, saved: boolean) => {
+    const rng = createRng(deps.seed());
+    let prep: PrepSession;
+    try {
+      prep = new PrepSession({ name: player.name, grade: pack.grade, difficulty, pack }, rng, pick(rng, CITIES));
+    } catch {
+      showPacks(player);                                 // no first problem: no blank game, no music, nothing recorded
+      return;
+    }
     deps.audio.start();                                  // inside the שחק / שמירה click, as on התחל
     musicWanted = true;
-    const rng = createRng(deps.seed());
-    const prep = new PrepSession({ name: player.name, grade: pack.grade, difficulty, pack }, rng, pick(rng, CITIES));
     game?.destroy();
     game = new GameScreen(root, prep, {
       audio: deps.audio,

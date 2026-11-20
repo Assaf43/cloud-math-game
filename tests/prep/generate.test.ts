@@ -6,6 +6,18 @@ import { eq } from '../../src/problems/rational';
 import { createRng } from '../../src/rng';
 import { evalText } from '../problems/evalText';
 import { EXAMPLES, shape } from './helpers';
+import type { Rational } from '../../src/types';
+
+/** The answer checked against the text with tests/problems/evalText.ts, not with the code that produced it. */
+function independentCheck(form: string, text: string, answer: Rational, where: string) {
+  const same = (a: Rational | null, b: Rational | null) => a !== null && b !== null && eq(a, b);
+  if (form === 'plain') return expect(same(evalText(text), answer), where).toBe(true);
+  if (form === 'convert') return expect(same(evalText(text.split(' = ')[0]), answer), where).toBe(true);
+  // missing and expand: put the answer in the box, then both sides of = must be equal
+  const filled = text.replace('▢', answer.d === 1 ? String(answer.n) : `${answer.n}/${answer.d}`);
+  const [left, right] = filled.split(' = ');
+  expect(same(evalText(left), evalText(right)), where).toBe(true);
+}
 
 describe.each(EXAMPLES)('%s', example => {
   const s = shape(example);
@@ -22,6 +34,7 @@ describe.each(EXAMPLES)('%s', example => {
       expect(p.text).not.toBe(s.exampleText);
       expect(p.choices.filter(c => eq(c.value, p.answer.value))).toHaveLength(1);
       expect(new Set(p.choices.map(c => c.text)).size).toBe(choiceCount(d));
+      independentCheck(p.exercise.form, p.text, p.answer.value, `${example} ${d} seed ${seed}`);
     }
   });
   it('can be varied', () => expect(canVary(s, 5)).toBe(true));

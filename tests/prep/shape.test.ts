@@ -25,6 +25,13 @@ describe('analyze: rejections', () => {
     ['', 'empty'], ['2 +', 'syntax'], ['1/3 = ?', 'too-precise'], ['1/2 ÷ 7/50', 'too-long'], ['1/3 + 2/3 + 1/11', 'too-long'],
   ])('rejects %s as %s', (input, reason) => expect(analyze(input)).toEqual({ ok: false, reason }));
 
+  it.each(['0 ÷ ▢ = 15', '▢ ÷ 0 = 5'])('rejects %s as div-zero: the division would be by zero', input =>
+    expect(analyze(input)).toEqual({ ok: false, reason: 'div-zero' }));
+  it('a missing divisor or dividend that is not zero still works', () => {
+    expect(analyze('72 ÷ ▢ = 9')).toMatchObject({ ok: true, shape: { answerKind: 'int' } });
+    expect(analyze('▢ ÷ 4 = 7')).toMatchObject({ ok: true, shape: { answerKind: 'int' } });
+  });
+
   it('every reason has copy', () => {
     for (const [k, v] of Object.entries(REJECT_TEXT)) if (k !== 'empty') expect(v.length).toBeGreaterThan(5);
     expect(Object.keys(REJECT_TEXT)).toHaveLength(11);

@@ -72,14 +72,16 @@ Curriculum sources:
 ## Test prep (הכנה למבחן)
 
 A practice mode for an upcoming school test. From the setup screen, **הכנה למבחן** opens the player's packs. The child
-types 3–5 exercises from the test material into a *pack* (on the game's own keypad, so the phone's keyboard never opens),
-and the game generates similar problems from them and plays 10 of them in the same sky, **without a timer**. A missed
+types 3–5 exercises from the test material into a *pack* (the exercise rows use the game's own keypad, so the phone's
+keyboard does not open for them; the pack's name is typed on the phone's normal keyboard), and the game generates similar problems from them and plays 10 of them in the same sky, **without a timer**. A missed
 problem's kind comes back once later as a returning problem (darker clouds, worth 2 stars instead of 1). A right answer
 gets a small celebration: the clouds part and a ray of sun falls on it (still, with reduced motion). At the end,
 **הדרך** shows the way step by step for up to 3 missed kinds, with the typical slip when the picked answer matches one,
 and offers one similar problem to try, without a score. The summary shows the stars and how many were solved.
 
-Supported exercise forms, with whole numbers, fractions, mixed numbers and decimals where the grade allows:
+Supported exercise forms, with whole numbers, fractions, mixed numbers and decimals in every grade. The pack's grade does
+not limit the kinds of numbers; it caps how large generated whole numbers may grow (1,000 in grade 3, 10,000 in grade 4,
+100,000 in grades 5–6, never below the typed numbers):
 
 - one or more operations, with brackets: `48 × 6`, `3/4 + 1/8`, `2.5 − 0.75`, `6 × (2 + 3)`
 - a missing number: `▢ + 27 = 63`, `48 ÷ ▢ = 6`
@@ -113,8 +115,11 @@ Where the code lives:
 | Packs, the practice session | `src/prep/pack.ts`, `src/prep/prepSession.ts` |
 | Screens | `src/ui/prepPacksScreen.ts`, `prepEditScreen.ts`, `prepKeypad.ts`, `prepEndScreens.ts`; routing in `src/app.ts` |
 
-Every answer is computed in code and checked against an independent evaluation in the tests; nothing is shown whose
-answer was not computed.
+Every answer is computed in code; nothing is shown whose answer was not computed. In the tests, every problem of the
+main generator test (`tests/prep/generate.test.ts`, 200 seeds per example and difficulty) is also checked against its
+text with a separate test evaluator (`tests/problems/evalText.ts`): a plain exercise is evaluated, a missing number or
+an expanded fraction gets the answer put in the box and both sides of `=` must be equal, and a conversion's fraction
+must equal the answer.
 
 - **Adding a slip:** add its id to `SlipId` and its sentence to `SLIP_TEXT` in `src/prep/slips.ts` (calm wording: "נראה
   ש…", never "טעית"), then add a `note(...)` line in `slips()` that computes the value a child would get. Values equal to

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { GameScreen } from '../../src/ui/gameScreen';
 import { Session } from '../../src/game/session';
 import { CITIES } from '../../src/weather/cities';
@@ -300,6 +301,27 @@ test('practice: the timer is hidden and ten minutes pass without a timeout', asy
   for (let i = 0; i < 60; i++) { s.addNow(10000); s.frame(10000); }
   expect(s.flow.phase).toBe('problem');
   s.screen.destroy();
+});
+
+test('only a timer-free practice marks the game root, so a long pack name can shrink without touching the regular bar', async () => {
+  const p = setupPrep(2, 'המבחן הגדול בחשבון של כיתה ה׳'); await p.screen.start();
+  expect(p.root.querySelector('.game')!.classList.contains('no-timer')).toBe(true);
+  p.screen.destroy();
+  const s = setup(); await s.screen.start();
+  expect(s.root.querySelector('.game')!.className).toBe('game');
+  s.screen.destroy();
+});
+
+test('the shrinking round label is scoped to a timer-free game, and the bar buttons never shrink', () => {
+  const css = readFileSync('src/styles.css', 'utf8');
+  const rule = css.match(/\.game\.no-timer \.status-round\s*\{([^}]*)\}/);
+  expect(rule).not.toBeNull();
+  expect(rule![1]).toMatch(/min-width:\s*0/);
+  expect(rule![1]).toMatch(/overflow:\s*hidden/);
+  expect(rule![1]).toMatch(/text-overflow:\s*ellipsis/);
+  const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*\.status-round[^{}]*)\{/g)].map(m => m[1].trim());
+  expect(selectors).toEqual(['.game.no-timer .status-round']);       // no rule reaches the regular game's round label
+  expect(css).toMatch(/\.status button\s*\{[^}]*flex:\s*none/);
 });
 
 test('practice: the right answer celebrates and lights that answer, with the success chime', async () => {

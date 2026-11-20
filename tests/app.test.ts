@@ -2,6 +2,7 @@ import { startApp } from '../src/app';
 import { Storage } from '../src/storage/storage';
 import type { WeatherState } from '../src/types';
 import { packShapes } from '../src/prep/pack';
+import { PrepSession } from '../src/prep/prepSession';
 import { evalText } from './problems/evalText';
 
 function memory() {
@@ -374,6 +375,29 @@ test('when the device cannot store the pack, a practice starts at once and the s
   expect(record).not.toHaveBeenCalled();
   buttonByText(root, 'חזרה לחבילות')!.click();
   expect(root.querySelector('.prep-packs')).not.toBeNull();
+});
+
+test('when no practice can be made from the pack, שחק stays on the pack list: no blank game, no music, nothing recorded', async () => {
+  const { root, audio, storage } = boot();
+  openPacks(root);
+  buttonByText(root, 'חבילה חדשה')!.click();
+  fillEditor(root, 'מבחן כפל', EXAMPLES);
+  const record = vi.spyOn(storage, 'recordPractice');
+  // forces the real constructor path "no first problem": every draw comes back empty
+  const generate = vi.spyOn(PrepSession.prototype as unknown as { generate: () => null }, 'generate').mockReturnValue(null);
+  buttonByText(root, 'שחק')!.click();
+  await flush();
+  expect(generate).toHaveBeenCalled();
+  expect(root.querySelector('.game')).toBeNull();
+  expect(root.querySelector('.prep-packs')).not.toBeNull();
+  expect(audio.start).not.toHaveBeenCalled();
+  t += 120000; await vi.advanceTimersByTimeAsync(5000);
+  expect(audio.resumeMusic).not.toHaveBeenCalled();
+  document.dispatchEvent(new Event('visibilitychange'));               // the music flag was never set
+  expect(audio.resumeMusic).not.toHaveBeenCalled();
+  expect(record).not.toHaveBeenCalled();
+  expect(storage.packs('נועה')[0]).toMatchObject({ shapes: {}, lastStars: null });
+  generate.mockRestore();
 });
 
 test('editing a pack keeps its id, date, owner, grade and stars, and the stats of the kinds still in it', () => {

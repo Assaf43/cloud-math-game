@@ -196,7 +196,11 @@ function solveMissing(left: Bin, result: Rational): Rational {
     case '+': return apply('−', result, other);
     case '×': return apply('÷', result, other);
     case '−': return holeLeft ? apply('+', result, other) : apply('−', other, result);
-    case '÷': return holeLeft ? apply('×', result, other) : apply('÷', other, result);
+    case '÷': {                                       // the divisor (written or solved) is never 0
+      const hole = holeLeft ? apply('×', result, other) : apply('÷', other, result);
+      if ((holeLeft ? other : hole).n === 0) throw new Error('zero denominator');
+      return hole;
+    }
   }
 }
 

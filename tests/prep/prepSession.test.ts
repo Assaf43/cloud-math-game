@@ -157,6 +157,51 @@ test('invalid text keeps the attempt; timeout throws; guards; unsupported pack t
   expect(() => make(['abc', 'x y', '??'], 1)).toThrow();
 });
 
+test.each(['beginner', 'advanced', 'expert'] as const)('%s: a shape that is hard to hit (1.25 × 8) never starts finished and always reaches 10 problems (300 seeds)', d => {
+  expect(packShapes(makePack(['1.25 × 8']))).toHaveLength(1);
+  for (let seed = 0; seed < 300; seed++) {
+    const s = make(['1.25 × 8'], seed, d);
+    expect(s.phase, `${d} seed ${seed}`).toBe('problem');
+    expect(play(s).texts, `${d} seed ${seed}`).toHaveLength(BASE_PROBLEMS);
+  }
+}, 60000);
+
+test('a pack that cannot produce a first problem makes the constructor throw', () => {
+  // with an rng stuck at 0 every beginner 48 × 6 draw is 24 × 3, which the child typed as well
+  const pack = makePack(['48 × 6', '24 × 3']);
+  expect(packShapes(pack)).toHaveLength(1);
+  expect(() => new PrepSession({ name: 'נועה', grade: 5, difficulty: 'beginner', pack }, () => 0, CITIES[0])).toThrow();
+});
+
+test('the problem number is the one on screen: unchanged during the reveal, last one equals the practice length', () => {
+  const s = make(EXAMPLES, 3);
+  const num = () => s.status().problem;
+  expect(num()).toBe('תרגיל 1');
+  let n = 0;
+  for (;;) {
+    n++;
+    const before = num();
+    expect(before).toBe(`תרגיל ${n}`);
+    s.choose(n === 10 ? s.problem.choices.find(c => c.text !== s.problem.answer.text)!.text : s.problem.answer.text, 0);
+    expect(num()).toBe(before);                                       // during the reveal
+    s.advance();
+    if (s.phase === 'finished') break;
+    expect(num()).not.toBe(before);
+  }
+  expect(n).toBe(11);
+  expect(num()).toBe('תרגיל 11');
+});
+
+test('typed examples never come back, not only the first of each kind (500 seeds, advanced)', () => {
+  const typed = ['48 × 6', '52 × 7', '63 × 4'];
+  for (let seed = 0; seed < 500; seed++) {
+    const s = make(typed, seed, 'advanced');
+    const r = play(s, [1, 4]);
+    for (const t of r.texts) expect(typed, `seed ${seed}`).not.toContain(t);
+    for (const m of s.misses) expect(typed).not.toContain(s.makeTwin(m).text);
+  }
+});
+
 test('config is exposed', () => {
   const cfg: PrepConfig = { name: 'נועה', grade: 5, difficulty: 'beginner', pack: makePack(EXAMPLES) };
   expect(new PrepSession(cfg, createRng(1), CITIES[0]).config).toBe(cfg);

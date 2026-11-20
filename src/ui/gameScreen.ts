@@ -147,6 +147,7 @@ export class GameScreen {
     this.problemEl.dir = 'auto';
     this.timer.append(this.timerBar);
     this.timer.hidden = this.flow.timeLimitMs === null;                  // a practice has no timer
+    if (this.flow.timeLimitMs === null) this.game.classList.add('no-timer');   // lets a long pack name shrink; the regular game is untouched
 
     this.pauseOverlay.hidden = true;
     this.pauseOverlay.append(el('p', 'overlay-title', 'המשחק מושהה'));
