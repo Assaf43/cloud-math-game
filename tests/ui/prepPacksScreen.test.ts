@@ -107,7 +107,7 @@ test('with no packs the friendly empty state shows, and a new pack can still be 
 });
 
 test('a pack with no supported line says so and cannot be played, but can be edited or deleted', () => {
-  const broken = pack({ examples: ['abc', '2 × 2', '((('] });
+  const broken = pack({ examples: ['abc', '1 × 1', '((('] });
   const { o, byText, items } = setup([broken]);
   expect(items()[0].textContent).toContain('אין בחבילה תרגילים שאפשר לתרגל');
   expect(items()[0].textContent).not.toContain('סוגי תרגילים');

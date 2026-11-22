@@ -18,9 +18,9 @@ export const MAX_INPUT = 40;
 const BIDI = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 const ALT: Record<string, string> = { '*': '×', x: '×', X: '×', ':': '÷', '-': '−', '–': '−', '□': '▢', _: '▢' };
 
-/** Cleans what a child typed: no bidi marks, game symbols, single spaces, at most MAX_INPUT chars. */
+/** Cleans what a child typed: no bidi marks, game symbols, one ▢ for a run of them ("___"), single spaces, at most MAX_INPUT chars. */
 export function normalize(input: string): string {
-  return input.replace(BIDI, '').replace(/[*xX:\-–□_]/g, (c) => ALT[c])
+  return input.replace(BIDI, '').replace(/[*xX:\-–□_]/g, (c) => ALT[c]).replace(/▢+/g, '▢')
     .trim().replace(/\s+/g, ' ').slice(0, MAX_INPUT);
 }
 
@@ -132,9 +132,13 @@ function parseTokens(t: Token[]): Exercise {
   let result: Num | null = null;
   if (isSym(t[pos.i], '=')) {
     const r = t[pos.i + 1];
-    if (!isNum(r)) return fail();
-    result = r;
-    pos.i += 2;
+    if (isNum(r)) {
+      result = r;
+      pos.i += 2;
+    } else if (r === undefined || isSym(r, '?') || isSym(r, '▢')) {   // "48 × 6 =", "= ?", "= ▢": dropped like "= 288"
+      if (expr.type !== 'bin' || holes(expr) > 0) return fail();
+      pos.i += r === undefined ? 1 : 2;
+    } else return fail();
   }
   if (pos.i !== t.length || expr.type !== 'bin') return fail();
   const h = holes(expr);

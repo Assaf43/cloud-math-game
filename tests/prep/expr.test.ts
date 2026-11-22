@@ -15,6 +15,23 @@ it.each([
 it.each([['', 'empty'], ['   ', 'empty'], ['שלוש ועוד שתיים', 'letters'], ['48', 'syntax'], ['48 × ', 'syntax'],
   ['(2 + 3', 'syntax'], ['3/0 + 1', 'syntax'], ['▢ + ▢ = 4', 'syntax'], ['2 + ▢', 'syntax'], ['4 ++ 4', 'syntax'], ['5 = ?', 'syntax'], ['2.5 = ?', 'syntax']])
   ('rejects %s', (input, error) => expect(parseExercise(input)).toEqual({ ok: false, error }));
+// owner decision 2026-11-22: an exercise with an operator and no box may end with "=", "= ?" or "= ▢"; that tail is dropped
+it.each([
+  ['48 × 6 =', '48 × 6', '288'], ['48 × 6 = ?', '48 × 6', '288'], ['48 × 6 = ▢', '48 × 6', '288'], ['48 × 6 = ___', '48 × 6', '288'],
+  ['6 × (2 + 3) =', '6 × (2 + 3)', '30'], ['48×6=', '48 × 6', '288'],
+])('accepts the trailing equals sign in %s', (input, text, answer) => {
+  const x = ok(input); const a = exerciseAnswer(x);
+  expect(x.form).toBe('plain');
+  expect(exerciseText(x)).toBe(text); expect(a.d === 1 ? `${a.n}` : `${a.n}/${a.d}`).toBe(answer);
+});
+it.each([['48 =', 'syntax'], ['▢ × 7 = ▢', 'syntax'], ['2 + ▢ =', 'syntax'], ['48 × 6 = ▢ ▢', 'syntax'], ['48 × 6 = ? 5', 'syntax']])
+  ('still rejects %s', (input, error) => expect(parseExercise(input)).toEqual({ ok: false, error }));
+it('the missing and expand forms are unchanged by the trailing equals rule', () => {
+  expect(ok('▢ × 7 = 56').form).toBe('missing'); expect(ok('120 − ▢ = 45').form).toBe('missing');
+  expect(ok('2/3 = ▢/12').form).toBe('expand'); expect(ok('2 3/4 = ?').form).toBe('convert');
+});
+it('collapses a run of boxes into one', () => expect(normalize('48 × 6 = ___')).toBe('48 × 6 = ▢'));
+
 it('evaluate throws on a negative result and on ÷ 0', () => {
   expect(() => exerciseAnswer(ok('3 − 5'))).toThrow(); expect(() => exerciseAnswer(ok('5 ÷ (2 − 2)'))).toThrow();
 });

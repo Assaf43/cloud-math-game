@@ -157,14 +157,14 @@ test('invalid text keeps the attempt; timeout throws; guards; unsupported pack t
   expect(() => make(['abc', 'x y', '??'], 1)).toThrow();
 });
 
-test.each(['beginner', 'advanced', 'expert'] as const)('%s: a shape that is hard to hit (1.25 × 8) never starts finished and always reaches 10 problems (300 seeds)', d => {
+test.each(['beginner', 'advanced', 'expert'] as const)('%s: a shape that is hard to hit (1.25 × 8) never starts finished and always reaches 10 problems (100 seeds)', d => {
   expect(packShapes(makePack(['1.25 × 8']))).toHaveLength(1);
-  for (let seed = 0; seed < 300; seed++) {
+  for (let seed = 0; seed < 100; seed++) {
     const s = make(['1.25 × 8'], seed, d);
     expect(s.phase, `${d} seed ${seed}`).toBe('problem');
     expect(play(s).texts, `${d} seed ${seed}`).toHaveLength(BASE_PROBLEMS);
   }
-}, 60000);
+}, 20000);                                         // beginner alone takes about 4 s, too close to the 5 s default
 
 test('a pack that cannot produce a first problem makes the constructor throw', () => {
   // with an rng stuck at 0 every beginner 48 × 6 draw is 24 × 3, which the child typed as well

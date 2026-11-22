@@ -82,7 +82,7 @@ export function renderPrepSummary(root: HTMLElement, o: { packName: string; star
   const main = el('main', 'prep prep-result');
   const panel = el('div', 'prep-panel');
   if (o.perfect) panel.append(el('p', 'prep-perfect', 'תרגול מושלם!'));
-  panel.append(el('p', 'prep-stat', `אספת ${o.stars} כוכבים`), el('p', 'prep-stat', `פתרת ${o.solved} מתוך ${o.asked}`));
+  panel.append(el('p', 'prep-stat', o.stars === 1 ? 'אספת כוכב אחד' : `אספת ${o.stars} כוכבים`), el('p', 'prep-stat', `פתרת ${o.solved} מתוך ${o.asked}`));
   if (!o.saved) panel.append(el('p', 'prep-notice', STORAGE_NOTICE));
   const actions = el('div', 'prep-actions');
   actions.append(button('עוד תרגול', 'primary', o.onAgain), button('חזרה לחבילות', 'secondary', o.onBack));

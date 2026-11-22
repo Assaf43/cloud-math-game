@@ -47,7 +47,7 @@ test('a supported exercise shows ✓ and its label; unsupported ones show the re
   expect(status(0)).toBe('✓ כפל דו-ספרתי בחד-ספרתי');
   type(rows[1], 'abc');
   expect(status(1)).toBe(REJECT_TEXT.letters);
-  type(rows[2], '2 × 2');
+  type(rows[2], '1 × 1');
   expect(status(2)).toBe(REJECT_TEXT['cannot-vary']);
   expect(status(3)).toBe('');
   type(rows[0], '');
@@ -104,7 +104,7 @@ test('save needs a name and 3 lines with one supported; below 3 lines a hint sho
   type(rows[0], '48 × 6'); type(rows[1], 'abc');
   expect(save.disabled).toBe(true);
   expect(root.textContent).toContain('צריך לפחות 3 תרגילים');
-  type(rows[2], '2 × 2');
+  type(rows[2], '1 × 1');
   expect(save.disabled).toBe(false);
   expect(root.textContent).not.toContain('צריך לפחות 3 תרגילים');
   type(name, '   ');
@@ -116,7 +116,7 @@ test('save needs a name and 3 lines with one supported; below 3 lines a hint sho
 test('three unsupported lines cannot be saved', () => {
   const { name, rows, type, button } = setup();
   type(name, 'מבחן');
-  type(rows[0], 'abc'); type(rows[1], '2 × 2'); type(rows[2], '(((');
+  type(rows[0], 'abc'); type(rows[1], '1 × 1'); type(rows[2], '(((');
   expect(button('שמירה').disabled).toBe(true);
 });
 
@@ -180,8 +180,8 @@ test('editing an existing pack prefills the name and the rows', () => {
 });
 
 test('a stored pack whose lines no longer parse opens with each line\'s reason', () => {
-  const { rows, status, button, samples } = setup(pack({ examples: ['abc', '2 × 2', '((('] }));
-  expect(rows.map(r => r.value)).toEqual(['abc', '2 × 2', '(((', '', '']);
+  const { rows, status, button, samples } = setup(pack({ examples: ['abc', '1 × 1', '((('] }));
+  expect(rows.map(r => r.value)).toEqual(['abc', '1 × 1', '(((', '', '']);
   expect(status(0)).toBe(REJECT_TEXT.letters);
   expect(status(1)).toBe(REJECT_TEXT['cannot-vary']);
   expect(status(2)).toBe(REJECT_TEXT.syntax);

@@ -57,7 +57,7 @@ it('respects avoid and the grade cap', () => {
   expect(generateSimilar(s, 'beginner', 5, createRng(3), new Set([first.text]))!.text).not.toBe(first.text);
   for (let seed = 0; seed < 50; seed++) for (const n of generateSimilar(shape('900 + 80'), 'expert', 3, createRng(seed), new Set())!.text.split(' + ')) expect(Number(n)).toBeLessThanOrEqual(1000);
 });
-it.each(['2 × 2', '1 + 1'])('%s cannot be varied and never hangs', e => {
+it.each(['1 × 1', '1 + 1'])('%s cannot be varied and never hangs', e => {
   expect(canVary(shape(e), 5)).toBe(false);
   const p = generateSimilar(shape(e), 'beginner', 5, createRng(1), new Set()); if (p) expect(p.text).not.toBe(e);
 });
@@ -71,8 +71,43 @@ it('beginner 1/2 + 1/4 keeps denominators ≤ 6, one a multiple of the other', (
     expect(a % b === 0 || b % a === 0).toBe(true);
   }
 });
+// owner decision 2026-11-22: when the beginner ranges give fewer than 5 problems, beginner draws its whole numbers from the
+// whole same-digit range (the advanced rule); fractions, mixed numbers, decimals, expand and convert keep their rules
+const SMALL = ['2 × 3', '2 × 5', '3 × 3', '12 ÷ 4', '9 ÷ 3', '20 ÷ 4', '10 × 5', '7 × 10', '7 × 100', '20 × 3', '200 × 3', '12 × 2',
+  '11 × 3', '100 − 50', '20 + 30', '10 − 5', '5 − 2', '▢ ÷ 3 = 4', '10 ÷ ▢ = 5', '1/2 × 2', '1.5 × 2'];
+describe.each([3, 5] as const)('grade %s', g => {
+  it.each(SMALL)('%s can be varied', e => expect(canVary(shape(e), g)).toBe(true));
+  it.each(['1 × 1', '1 + 1'])('%s still cannot be varied', e => expect(canVary(shape(e), g)).toBe(false));
+});
+it('beginner 2 × 3 draws one-digit factors from 2…9 and never repeats the example', () => {
+  for (let seed = 0; seed < 100; seed++) {
+    const p = generateSimilar(shape('2 × 3'), 'beginner', 5, createRng(seed), new Set())!;
+    expect(p.text).not.toBe('2 × 3');
+    for (const n of p.text.split(' × ').map(Number)) { expect(n).toBeGreaterThanOrEqual(2); expect(n).toBeLessThanOrEqual(9); }
+  }
+});
+it('beginner 7 × 10 keeps the round factor round and the same shape', () => {
+  for (let seed = 0; seed < 100; seed++) {
+    const p = generateSimilar(shape('7 × 10'), 'beginner', 5, createRng(seed), new Set())!;
+    expect(Number(p.text.split(' × ')[1]) % 10).toBe(0);
+    expect(shape(p.text).key).toBe('plain:i1×i2');
+  }
+});
+it('a beginner shape that already has 5 problems is drawn exactly as before (48 × 6 stays within 24…48 and 3…6)', () => {
+  for (let seed = 0; seed < 100; seed++) {
+    const [a, b] = generateSimilar(shape('48 × 6'), 'beginner', 5, createRng(seed), new Set())!.text.split(' × ').map(Number);
+    expect(a).toBeGreaterThanOrEqual(24); expect(a).toBeLessThanOrEqual(48); expect(b).toBeGreaterThanOrEqual(3); expect(b).toBeLessThanOrEqual(6);
+  }
+});
+it('generateSimilar stays deterministic for a given rng, also when beginner is widened', () => {
+  for (const e of ['2 × 3', '48 × 6'])
+    for (let seed = 0; seed < 20; seed++)
+      expect(generateSimilar(shape(e), 'beginner', 5, createRng(seed), new Set())!.text)
+        .toBe(generateSimilar(shape(e), 'beginner', 5, createRng(seed), new Set())!.text);
+});
+
 it('gives up quickly on shapes that yield nothing', () => {   // the pack editor calls canVary on every keystroke
   const start = performance.now();
-  for (const e of ['2/3 = ▢/10', '2 × 2', '1 + 1']) expect(canVary(shape(e), 5)).toBe(false);
+  for (const e of ['2/3 = ▢/10', '1 × 1', '1 + 1']) expect(canVary(shape(e), 5)).toBe(false);
   expect(performance.now() - start).toBeLessThan(200);
 });

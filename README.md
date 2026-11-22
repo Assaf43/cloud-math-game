@@ -83,7 +83,8 @@ Supported exercise forms, with whole numbers, fractions, mixed numbers and decim
 not limit the kinds of numbers; it caps how large generated whole numbers may grow (1,000 in grade 3, 10,000 in grade 4,
 100,000 in grades 5–6, never below the typed numbers):
 
-- one or more operations, with brackets: `48 × 6`, `3/4 + 1/8`, `2.5 − 0.75`, `6 × (2 + 3)`
+- one or more operations, with brackets: `48 × 6`, `3/4 + 1/8`, `2.5 − 0.75`, `6 × (2 + 3)`; a trailing `=`, `= ?` or
+  `= ▢` (also `= ___`) may be typed and is dropped, so `48 × 6 =` is the same as `48 × 6`
 - a missing number: `▢ + 27 = 63`, `48 ÷ ▢ = 6`
 - expanding or reducing a fraction: `2/3 = ▢/12`
 - a fraction to a decimal: `3/4 = ?`
@@ -93,6 +94,10 @@ For any other line the editor says calmly why it cannot be practised yet, and th
 Decisions made with the owner while building it:
 
 - At **מתחיל** and **מתקדם** a generated problem keeps the digit counts of the typed example; **ממש מתקדם** may add a digit.
+- At **מתחיל** whole numbers stay between half the typed number and the typed number (`48 × 6` gives 24…48 × 3…6).
+  When that leaves fewer than 5 different problems, as for small or round examples (`2 × 3`, `7 × 10`, `▢ ÷ 3 = 4`),
+  **מתחיל** draws the whole numbers like **מתקדם**: any number with the same digit count (2…9 for one digit), round
+  numbers kept round. Fractions, mixed numbers and decimals keep the **מתחיל** rules.
 - At **מתחיל** fraction denominators go up to at least 6: up to 6, or up to the example's largest denominator when
   that is larger (at most 12).
 - The keypad has a `?` key, so a conversion such as `3/4 = ?` can be typed on a phone.

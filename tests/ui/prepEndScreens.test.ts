@@ -142,6 +142,14 @@ test('stars and solved count are shown separately: a returning problem is worth 
   expect(root.textContent).toContain('פתרת 10 מתוך 11');
 });
 
+test('exactly one star is said in the singular; 0, 2 and 10 keep the plural copy', () => {
+  const stat = (stars: number) => { document.body.innerHTML = ''; return setupSummary({ stars }).root.querySelector('.prep-stat')!.textContent; };
+  expect(stat(1)).toBe('אספת כוכב אחד');
+  expect(stat(0)).toBe('אספת 0 כוכבים');
+  expect(stat(2)).toBe('אספת 2 כוכבים');
+  expect(stat(10)).toBe('אספת 10 כוכבים');
+});
+
 test('a perfect practice adds תרגול מושלם! with the big celebration style', () => {
   const { root } = setupSummary({ stars: 10, solved: 10, perfect: true });
   const line = root.querySelector('.prep-perfect')!;

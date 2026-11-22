@@ -18,8 +18,11 @@ const DIFFICULTIES: Difficulty[] = ['beginner', 'advanced', 'expert'];
 const VARY_CALLS = 400;
 const MAX_MISSES = 3;          // canVary gives up on a difficulty after this many null calls in a row
 
-/** One generateSimilar call: the difficulty, the grade cap, the rng, and the example's largest int leaf (expert growth). */
-interface Ctx { d: Difficulty; cap: number; rng: Rng; largest: Num | null }
+/**
+ * One generateSimilar call: the difficulty, the grade cap, the rng, the example's largest int leaf (expert growth), and
+ * `wide`: a beginner shape whose own ranges give too few problems draws its whole numbers by the advanced rule.
+ */
+interface Ctx { d: Difficulty; cap: number; rng: Rng; largest: Num | null; wide: boolean }
 
 const lcm = (a: number, b: number) => a / gcd(a, b) * b;
 const range = (lo: number, hi: number) => Array.from({ length: Math.max(0, hi - lo + 1) }, (_, i) => lo + i);
@@ -42,8 +45,9 @@ function intRange(v: number, c: Ctx, grows: Op | null): IntRange | null {
   const k = String(v).length;
   let unit = 1;                                     // a multiple of 10^m keeps that unit
   while (v % (unit * 10) === 0) unit *= 10;
-  const lo = Math.max(2, 10 ** (k - 1), c.d === 'beginner' ? Math.ceil(v / 2) : 0);
-  let hi = c.d === 'beginner' ? v : 10 ** k - 1;
+  const narrow = c.d === 'beginner' && !c.wide;
+  const lo = Math.max(2, 10 ** (k - 1), narrow ? Math.ceil(v / 2) : 0);
+  let hi = narrow ? v : 10 ** k - 1;
   if (c.d === 'expert' && grows) hi = grows === '×' || grows === '÷' ? 2 * 10 ** k - 1 : 10 ** (k + 1) - 1;
   return { lo, hi: Math.min(hi, Math.max(c.cap, v)), unit };
 }
@@ -245,28 +249,54 @@ function check(x: Exercise, shape: Shape, d: Difficulty, avoid: ReadonlySet<stri
   return answer && { exercise: a.shape.exercise, text, answer };
 }
 
-export function generateSimilar(shape: Shape, difficulty: Difficulty, grade: Grade, rng: Rng, avoid: ReadonlySet<string>): PrepProblem | null {
-  const c: Ctx = { d: difficulty, cap: GRADE_MAX_INT[grade], rng, largest: null };
+/** Up to MAX_ATTEMPTS draws; the first one that passes `check`, else null. */
+function drawChecked(shape: Shape, c: Ctx, avoid: ReadonlySet<string>): ReturnType<typeof check> {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    let found: ReturnType<typeof check>;
     try {
-      found = check(draw(shape.exercise, c), shape, difficulty, avoid);
+      const found = check(draw(shape.exercise, c), shape, c.d, avoid);
+      if (found) return found;
     } catch (e) {
-      if (e instanceof Redo) continue;
-      throw e;
+      if (!(e instanceof Redo)) throw e;
     }
-    if (!found) continue;
-    const { exercise, text, answer } = found;
-    const mistakes = slips(exercise);
-    const choices = buildChoices(answer, mistakes.map((m) => m.value), choiceCount(difficulty), rng);
-    const tags: Record<string, SlipId> = {};
-    for (const ch of choices) {
-      const hit = eq(ch.value, answer.value) ? undefined : mistakes.find((m) => eq(m.value, ch.value));
-      if (hit) tags[ch.text] = hit.slip;
-    }
-    return { text, topic: `prep.${shape.key}`, answer, choices, shapeKey: shape.key, exercise, slips: tags, stubborn: false };
   }
   return null;
+}
+
+const WIDE_CACHE_MAX = 200;
+const wideCache = new Map<string, boolean>();   // `${grade} ${exampleText}` -> beginner draws whole numbers widely
+
+/**
+ * True when the beginner ranges give fewer than 5 different problems for this shape and grade. Decided once with its own
+ * rng (so a caller's rng is never touched) and the canVary early stop: each draw must be new; 3 empty draws in a row end it.
+ */
+function beginnerTooFew(shape: Shape, grade: Grade): boolean {
+  const key = `${grade} ${shape.exampleText}`;
+  const known = wideCache.get(key);
+  if (known !== undefined) return known;
+  const c: Ctx = { d: 'beginner', cap: GRADE_MAX_INT[grade], rng: createRng(1), largest: null, wide: false };
+  const seen = new Set<string>();
+  for (let misses = 0; seen.size < 5 && misses < MAX_MISSES;) {
+    const found = drawChecked(shape, c, seen);
+    if (found) { seen.add(found.text); misses = 0; } else misses++;
+  }
+  if (wideCache.size >= WIDE_CACHE_MAX) wideCache.clear();
+  wideCache.set(key, seen.size < 5);
+  return seen.size < 5;
+}
+
+export function generateSimilar(shape: Shape, difficulty: Difficulty, grade: Grade, rng: Rng, avoid: ReadonlySet<string>): PrepProblem | null {
+  const wide = difficulty === 'beginner' && beginnerTooFew(shape, grade);
+  const found = drawChecked(shape, { d: difficulty, cap: GRADE_MAX_INT[grade], rng, largest: null, wide }, avoid);
+  if (!found) return null;
+  const { exercise, text, answer } = found;
+  const mistakes = slips(exercise);
+  const choices = buildChoices(answer, mistakes.map((m) => m.value), choiceCount(difficulty), rng);
+  const tags: Record<string, SlipId> = {};
+  for (const ch of choices) {
+    const hit = eq(ch.value, answer.value) ? undefined : mistakes.find((m) => eq(m.value, ch.value));
+    if (hit) tags[ch.text] = hit.slip;
+  }
+  return { text, topic: `prep.${shape.key}`, answer, choices, shapeKey: shape.key, exercise, slips: tags, stubborn: false };
 }
 
 /** True when every difficulty yields at least 5 different problems in 400 calls (stops after 3 empty calls in a row). */
