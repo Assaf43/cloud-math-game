@@ -108,6 +108,6 @@ it('generateSimilar stays deterministic for a given rng, also when beginner is w
 
 it('gives up quickly on shapes that yield nothing', () => {   // the pack editor calls canVary on every keystroke
   const start = performance.now();
-  for (const e of ['2/3 = ▢/10', '1 × 1', '1 + 1']) expect(canVary(shape(e), 5)).toBe(false);
+  for (const e of ['1 × 1', '1 + 1']) expect(canVary(shape(e), 5)).toBe(false);
   expect(performance.now() - start).toBeLessThan(200);
 });

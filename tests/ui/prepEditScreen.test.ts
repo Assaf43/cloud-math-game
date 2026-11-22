@@ -54,6 +54,12 @@ test('a supported exercise shows ✓ and its label; unsupported ones show the re
   expect(status(0)).toBe('');
 });
 
+test('a whole-number exercise with a non-whole result shows the not-whole reason', () => {
+  const { rows, status, type } = setup();
+  type(rows[0], '17 ÷ 5');
+  expect(status(0)).toBe('התוצאה לא יוצאת מספר שלם, ואת זה עוד אי אפשר לתרגל.');
+});
+
 test('the rejection text is neutral: no error wording', () => {
   const { rows, status, type, root } = setup();
   type(rows[0], 'abc');

@@ -47,7 +47,7 @@ function packItem(pack: Pack, difficulty: () => Difficulty,
   o: { onPlay(pack: Pack, difficulty: Difficulty): void; onEdit(pack: Pack): void; onDelete(pack: Pack): void }): HTMLLIElement {
   const item = el('li', 'prep-pack');
   const kinds = packShapes(pack).length;
-  const info = el('p', 'prep-pack-info', kinds > 0 ? `${kinds} סוגי תרגילים` : 'אין בחבילה תרגילים שאפשר לתרגל');
+  const info = el('p', 'prep-pack-info', kinds === 1 ? 'סוג תרגילים אחד' : kinds > 0 ? `${kinds} סוגי תרגילים` : 'אין בחבילה תרגילים שאפשר לתרגל');
   if (pack.lastStars !== null) info.append(' · ', el('span', 'prep-pack-stars', `⭐ ${pack.lastStars}`));
   const actions = el('div', 'prep-pack-actions');
 

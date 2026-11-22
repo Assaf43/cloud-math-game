@@ -44,9 +44,20 @@ test('each pack shows its name, how many kinds of exercises, the last stars and 
   expect(items()[0].textContent).toContain('2 סוגי תרגילים');
   expect(items()[0].textContent).toContain('⭐ 2');
   expect(items()[1].textContent).toContain('חיבור');
-  expect(items()[1].textContent).toContain('1 סוגי תרגילים');
+  expect(items()[1].textContent).toContain('סוג תרגילים אחד');
   expect(items()[1].textContent).not.toContain('⭐');
   for (const it of items()) expect(buttons(it).map(b => b.textContent)).toEqual(['שחק', 'עריכה', 'מחיקה']);
+});
+
+test('exactly one kind is said in the singular; 2 and more keep the plural copy', () => {
+  const kinds = (examples: string[]) => {
+    document.body.innerHTML = '';
+    return setup([pack({ examples })]).items()[0].querySelector('.prep-pack-info')!.textContent;
+  };
+  expect(kinds(['3 + 4', '5 + 2', '6 + 1'])).toBe('סוג תרגילים אחד');
+  expect(kinds(['48 × 6', '52 × 7', '3 + 4'])).toBe('2 סוגי תרגילים');
+  expect(kinds(['48 × 6', '3 + 4', '72 ÷ 8'])).toBe('3 סוגי תרגילים');
+  expect(kinds(['abc', '1 × 1', '((('])).toBe('אין בחבילה תרגילים שאפשר לתרגל');
 });
 
 test('a pack name containing markup is shown as text', () => {

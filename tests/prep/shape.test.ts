@@ -12,7 +12,6 @@ describe('analyze: shapes', () => {
     ['120 − ▢ = 45', 'missing:i−▢', 'מספר חסר בחיסור', 'int'], ['12345 ÷ 5', 'plain:i5÷i1', 'חילוק רב-ספרתי בחד-ספרתי', 'int'],
     ['2 3/4 = ?', 'convert', 'שבר למספר עשרוני', 'decimal'], ['7/50 = ?', 'convert', 'שבר למספר עשרוני', 'decimal'],
     ['0.01 + 0.5', 'plain:d2+d1', 'חיבור עשרוניים', 'decimal'], ['5/9 = ▢/54', 'expand:num', 'הרחבת שברים', 'int'],
-    ['▢ × 7 = 50', 'missing:▢×i', 'מספר חסר בכפל', 'fraction'],
   ])('%s', (input, key, label, kind) => expect(shape(input)).toMatchObject({ key, label, answerKind: kind }));
 
   it('same shape for different numbers', () => expect(shape('52 × 7').key).toBe(shape('48 × 6').key));
@@ -23,6 +22,7 @@ describe('analyze: rejections', () => {
   it.each([['3 − 5', 'negative'], ['5 ÷ (2 − 2)', 'div-zero'], ['1.234 + 1', 'too-precise'], ['1/3 + 0.5', 'mixed-kinds'],
     ['99999 × 99999', 'too-long'], ['1/7 + 1/11', 'too-long'], ['1+1+1+1+1+1', 'too-many-ops'], ['2 + ▢', 'hole'], ['abc', 'letters'],
     ['', 'empty'], ['2 +', 'syntax'], ['1/3 = ?', 'too-precise'], ['1/2 ÷ 7/50', 'too-long'], ['1/3 + 2/3 + 1/11', 'too-long'],
+    ['▢ × 7 = 50', 'not-whole'],
   ])('rejects %s as %s', (input, reason) => expect(analyze(input)).toEqual({ ok: false, reason }));
 
   it.each(['0 ÷ ▢ = 15', '▢ ÷ 0 = 5'])('rejects %s as div-zero: the division would be by zero', input =>
@@ -32,9 +32,16 @@ describe('analyze: rejections', () => {
     expect(analyze('▢ ÷ 4 = 7')).toMatchObject({ ok: true, shape: { answerKind: 'int' } });
   });
 
+  // owner decision 2026-11-22: a whole-number exercise whose result (or missing number) is not whole is refused
+  it.each(['17 ÷ 5', '7 ÷ 2', '(1 + 2) ÷ 2', '▢ × 7 = 50', '2/3 = ▢/10'])('rejects %s as not-whole', input =>
+    expect(analyze(input)).toEqual({ ok: false, reason: 'not-whole' }));
+  it.each(['12 ÷ 4', '▢ × 7 = 56', '2/3 = ▢/12', '1/2 + 1/4', '7.5 ÷ 2.5', '0.6 × 3', '3/4 = ?'])('%s is still supported', input =>
+    expect(analyze(input).ok).toBe(true));
+  it('the not-whole copy is exact', () => expect(REJECT_TEXT['not-whole']).toBe('התוצאה לא יוצאת מספר שלם, ואת זה עוד אי אפשר לתרגל.'));
+
   it('every reason has copy', () => {
     for (const [k, v] of Object.entries(REJECT_TEXT)) if (k !== 'empty') expect(v.length).toBeGreaterThan(5);
-    expect(Object.keys(REJECT_TEXT)).toHaveLength(11);
+    expect(Object.keys(REJECT_TEXT)).toHaveLength(12);
   });
 });
 

@@ -3,7 +3,7 @@ import { gcd, intAnswer, fractionAnswer, decimalAnswer } from '../problems/ratio
 import { exerciseAnswer, exerciseText, parseExercise, normalize } from './expr';
 import type { Bin, Exercise, Expr, Num, Op, ParseError } from './expr';
 
-export type RejectReason = ParseError | 'negative' | 'div-zero' | 'too-precise' | 'too-long' | 'hole' | 'mixed-kinds' | 'too-many-ops' | 'cannot-vary';
+export type RejectReason = ParseError | 'negative' | 'div-zero' | 'too-precise' | 'too-long' | 'hole' | 'mixed-kinds' | 'too-many-ops' | 'cannot-vary' | 'not-whole';
 export interface Shape { key: string; label: string; exercise: Exercise; answerKind: AnswerKind; exampleText: string }
 export type Analysis = { ok: true; shape: Shape } | { ok: false; reason: RejectReason };
 
@@ -19,6 +19,7 @@ export const REJECT_TEXT: Record<RejectReason, string> = {
   'mixed-kinds': 'שברים ועשרוניים באותו תרגיל עוד אי אפשר לתרגל.',
   'too-many-ops': 'התרגיל ארוך מדי. אפשר עד ארבע פעולות.',
   'cannot-vary': 'לא הצלחתי לייצר תרגילים דומים לזה.',
+  'not-whole': 'התוצאה לא יוצאת מספר שלם, ואת זה עוד אי אפשר לתרגל.',
 };
 
 const MAX_OPS = 4;
@@ -125,6 +126,9 @@ export function analyze(input: string): Analysis {
     if (!reason) throw e;
     return reject(reason);
   }
+  // only whole numbers, or a missing number / expanded fraction: the result must be whole (17 ÷ 5, ▢ × 7 = 50, 2/3 = ▢/10)
+  const wholeOnly = x.form === 'missing' || x.form === 'expand' || (x.form === 'plain' && nums.every((n) => n.kind === 'int'));
+  if (wholeOnly && value.d !== 1) return reject('not-whole');
   const answerKind: AnswerKind = value.d === 1 ? 'int' : has('decimal') || x.form === 'convert' ? 'decimal' : 'fraction';
   if (answerKind === 'decimal' && 100 % value.d !== 0) return reject('too-precise');
   if (x.form === 'plain' && rational && nums.reduce((l, n) => lcm(l, n.value.d), 1) > MAX_DENOMINATOR) return reject('too-long');

@@ -89,6 +89,10 @@ not limit the kinds of numbers; it caps how large generated whole numbers may gr
 - expanding or reducing a fraction: `2/3 = ▢/12`
 - a fraction to a decimal: `3/4 = ?`
 
+An exercise made only of whole numbers must have a whole result, and a missing number or an expanded fraction must
+come out whole: `17 ÷ 5`, `▢ × 7 = 50` and `2/3 = ▢/10` are refused with "התוצאה לא יוצאת מספר שלם, ואת זה עוד אי אפשר
+לתרגל." Exercises with a fraction, mixed number or decimal (`1/2 + 1/4`, `7.5 ÷ 2.5`, `3/4 = ?`) are not affected.
+
 For any other line the editor says calmly why it cannot be practised yet, and the rest of the pack still works.
 
 Decisions made with the owner while building it:
