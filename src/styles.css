@@ -170,15 +170,19 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
   display: flex; flex-wrap: nowrap; align-items: center; gap: 4px 10px; padding: 3px 8px;
   background: #fff; font-size: clamp(.68rem, 2.3dvh, 1rem); font-weight: 700; white-space: nowrap;
 }
-.status-name { flex: 0 1 auto; min-width: 0; max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+/* Mute and pause (pause is the only way out of a game) must stay on the screen on every phone and at every text size:
+   the buttons never shrink and the texts give way with an ellipsis: the name first, then the round, then the problem. */
+.status-name { flex: 0 100000000 auto; min-width: 0; max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+.status-progress { display: contents; }
+.status-round, .status-problem { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.status-round { flex-shrink: 10000; }
 .status-score { margin-inline-start: auto; }
-/* narrow phones: one row cannot hold it all, and pause (the only way out of a game) slid off the screen.
-   Two rows instead: name, score and the buttons above (only the name gives way); round and problem below. */
-@media (max-width: 411px) {
-  .status { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; row-gap: 0; }
-  .status-name { max-width: none; }
-  .status-round { grid-area: 2 / 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .status-problem { grid-area: 2 / 2 / auto / -1; justify-self: end; }
+/* upright screens: one row cannot hold it all, so round and problem take a second row; the name gets what is left of the first */
+@media (orientation: portrait) {
+  .status { flex-wrap: wrap; row-gap: 0; }
+  .status-name { flex: 1 1 0; max-width: none; }
+  .status-progress { display: flex; order: 1; flex: 0 0 100%; min-width: 0; gap: 10px; }
+  .status-problem { margin-inline-start: auto; }
 }
 .status button { flex: none; min-width: 32px; height: 28px; border: 0; border-radius: 8px; background: #e6eefb; font-size: 1.1rem; cursor: pointer; }
 .game-sky { flex: 1 1 0; min-height: 36%; position: relative; }
