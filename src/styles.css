@@ -172,6 +172,14 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
 }
 .status-name { flex: 0 1 auto; min-width: 0; max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
 .status-score { margin-inline-start: auto; }
+/* narrow phones: one row cannot hold it all, and pause (the only way out of a game) slid off the screen.
+   Two rows instead: name, score and the buttons above (only the name gives way); round and problem below. */
+@media (max-width: 411px) {
+  .status { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; row-gap: 0; }
+  .status-name { max-width: none; }
+  .status-round { grid-area: 2 / 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .status-problem { grid-area: 2 / 2 / auto / -1; justify-self: end; }
+}
 .status button { flex: none; min-width: 32px; height: 28px; border: 0; border-radius: 8px; background: #e6eefb; font-size: 1.1rem; cursor: pointer; }
 .game-sky { flex: 1 1 0; min-height: 36%; position: relative; }
 .problem {

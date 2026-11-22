@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { GameScreen } from '../../src/ui/gameScreen';
 import { Session } from '../../src/game/session';
 import { CITIES } from '../../src/weather/cities';
@@ -63,6 +64,22 @@ test('status bar shows name, round, problem and score', async () => {
   const bar = s.root.querySelector('.status')!.textContent!;
   expect(bar).toContain('נועה'); expect(bar).toContain('סבב 1 מתוך 2'); expect(bar).toContain(`תרגיל 1 מתוך ${s.session.problemsInRound}`);
   s.screen.destroy();
+});
+
+test('on narrow phones the status bar takes two rows, so mute and pause stay on the screen (CSS)', async () => {
+  const s = setup(); await s.screen.start();
+  // the two-row grid places by source order: the name, then the score and the two buttons, fill the first row
+  expect([...s.root.querySelector('.status')!.children].map(c => c.className))
+    .toEqual(['status-name', 'status-round', 'status-problem', 'status-score', 'mute-btn', 'pause-btn']);
+  s.screen.destroy();
+  const css = readFileSync('src/styles.css', 'utf8');
+  expect(css).toMatch(/\.status\s*\{[^}]*flex-wrap:\s*nowrap/);                              // wide screens keep the single row
+  const narrow = css.match(/@media \(max-width:\s*411px\)\s*\{((?:[^{}]*\{[^{}]*\})+)\s*\}/)?.[1] ?? '';
+  expect(narrow).toMatch(/\.status\s*\{[^}]*display:\s*grid/);
+  expect(narrow).toMatch(/\.status\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto\s+auto/);   // only the name gives way
+  expect(narrow).toMatch(/\.status-round\s*\{[^}]*grid-area:\s*2\s*\/\s*1\b/);
+  expect(narrow).toMatch(/\.status-round\s*\{[^}]*min-width:\s*0[^}]*text-overflow:\s*ellipsis/);
+  expect(narrow).toMatch(/\.status-problem\s*\{[^}]*grid-area:\s*2\s*\/\s*2\s*\/\s*auto\s*\/\s*-1/);
 });
 
 test('tapping the correct answer plays success, scores by speed and advances after 1500 ms', async () => {
