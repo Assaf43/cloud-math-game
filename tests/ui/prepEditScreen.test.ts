@@ -119,6 +119,27 @@ test('save needs a name and 3 lines with one supported; below 3 lines a hint sho
   expect(onSave).not.toHaveBeenCalled();
 });
 
+test('a save that is not possible yet always says why, right above the buttons', () => {
+  const { name, rows, type, button, root } = setup();
+  const hint = () => root.querySelector<HTMLElement>('.prep-hint')!;
+  expect(hint().textContent).toBe('צריך לפחות 3 תרגילים');                      // an empty editor
+  type(rows[0], '48 × 6'); type(rows[1], '345 + 27'); type(rows[2], '3/4 + 1/8');
+  expect(button('שמירה').disabled).toBe(true);                                   // three good lines, but no name
+  expect(hint().hidden).toBe(false);
+  expect(hint().textContent).toBe('צריך לתת שם לחבילה, בשדה שלמעלה');
+  type(name, 'מבחן');
+  expect(button('שמירה').disabled).toBe(false);
+  expect(hint().hidden).toBe(true);
+  expect(hint().textContent).toBe('');
+  type(rows[2], '');                                                             // too few lines comes first
+  expect(hint().textContent).toBe('צריך לפחות 3 תרגילים');
+  type(rows[0], 'abc'); type(rows[1], '1 × 1'); type(rows[2], '(((');            // three lines, none can be practised
+  expect(button('שמירה').disabled).toBe(true);
+  expect(hint().textContent).toBe('צריך לפחות תרגיל אחד שאפשר לתרגל');
+  expect(hint().nextElementSibling).toBe(root.querySelector('.prep-actions'));   // next to the button it explains
+  expect(hint().getAttribute('aria-live')).toBe('polite');
+});
+
 test('three unsupported lines cannot be saved', () => {
   const { name, rows, type, button } = setup();
   type(name, 'מבחן');
