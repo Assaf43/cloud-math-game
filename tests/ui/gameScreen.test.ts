@@ -342,7 +342,7 @@ test('only a timer-free practice marks the game root, so a long pack name can sh
   s.screen.destroy();
 });
 
-test('the shrinking round label is scoped to a timer-free game, and the bar buttons never shrink', () => {
+test('a long pack name shrinks in a timer-free game, and the bar buttons never shrink', () => {
   const css = readFileSync('src/styles.css', 'utf8');
   const rule = css.match(/\.game\.no-timer \.status-round\s*\{([^}]*)\}/);
   expect(rule).not.toBeNull();
@@ -350,7 +350,9 @@ test('the shrinking round label is scoped to a timer-free game, and the bar butt
   expect(rule![1]).toMatch(/overflow:\s*hidden/);
   expect(rule![1]).toMatch(/text-overflow:\s*ellipsis/);
   const selectors = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*\.status-round[^{}]*)\{/g)].map(m => m[1].trim());
-  expect(selectors).toEqual(['.game.no-timer .status-round']);       // no rule reaches the regular game's round label
+  // Since the status bar fix the regular game's round label gives way too (name, then round, then problem), so the
+  // practice rule is no longer the only one; it stays so a 30-character pack name shrinks whatever that order becomes.
+  expect(selectors).toContain('.game.no-timer .status-round');
   expect(css).toMatch(/\.status button\s*\{[^}]*flex:\s*none/);
 });
 
