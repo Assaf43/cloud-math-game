@@ -68,6 +68,36 @@ test('status bar shows name, round, problem and score', async () => {
   s.screen.destroy();
 });
 
+test('mute and pause cannot leave the status bar: the buttons keep their size and the texts give way (CSS)', async () => {
+  const s = setup(); await s.screen.start();
+  const status = s.root.querySelector('.status')!;
+  // round and problem are one unit, so an upright phone can give them a row of their own
+  expect([...status.children].map(c => c.className)).toEqual(['status-name', 'status-progress', 'status-score', 'mute-btn', 'pause-btn']);
+  expect([...status.querySelector('.status-progress')!.children].map(c => c.className)).toEqual(['status-round', 'status-problem']);
+  s.screen.destroy();
+  const css = readFileSync('src/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const portraitAt = css.search(/@media \(orientation:\s*portrait\)/);
+  expect(portraitAt).toBeGreaterThan(0);
+  const base = css.slice(0, portraitAt);
+  const portrait = css.slice(portraitAt).match(/@media \(orientation:\s*portrait\)\s*\{((?:[^{}]*\{[^{}]*\})+)\s*\}/)?.[1] ?? '';
+  // at every size: buttons never shrink; the texts can, in a fixed order
+  expect(css).toMatch(/\.status button\s*\{[^}]*flex:\s*none/);
+  const nameShrink = Number(base.match(/\.status-name\s*\{[^}]*flex:\s*0\s+(\d+)\s+auto/)?.[1]);
+  const textShrink = Number(base.match(/\.status-round, \.status-problem\s*\{[^}]*flex:\s*0\s+(\d+)\s+auto/)?.[1]);
+  expect(textShrink).toBeGreaterThan(0);
+  expect(nameShrink).toBeGreaterThanOrEqual(textShrink * 1e6);
+  const roundShrink = Number(base.match(/\.status-round\s*\{[^}]*flex-shrink:\s*(\d+)/)?.[1]);
+  expect(roundShrink).toBeGreaterThanOrEqual(textShrink * 1e4); expect(nameShrink).toBeGreaterThanOrEqual(roundShrink * 1e4);   // name, then round, then problem
+  expect(base).toMatch(/\.status-round, \.status-problem\s*\{[^}]*min-width:\s*0[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/);
+  expect(base).toMatch(/\.status-progress\s*\{[^}]*display:\s*contents/);                   // wide screens: one flat row, as before
+  expect(base).toMatch(/\.status\s*\{[^}]*flex-wrap:\s*nowrap/);
+  // upright screens: two rows, and no width breakpoint that has to match a particular phone
+  expect(css).not.toMatch(/@media[^{]*width[^{]*\{[^{}]*\.status/);
+  expect(portrait).toMatch(/\.status\s*\{[^}]*flex-wrap:\s*wrap/);
+  expect(portrait).toMatch(/\.status-name\s*\{[^}]*flex:\s*1\s+1\s+0/);
+  expect(portrait).toMatch(/\.status-progress\s*\{[^}]*display:\s*flex[^}]*order:\s*1[^}]*flex:\s*0\s+0\s+100%/);
+});
+
 test('tapping the correct answer plays success, scores by speed and advances after 1500 ms', async () => {
   const s = setup(); await s.screen.start();
   s.setNow(6000); s.tapRight();

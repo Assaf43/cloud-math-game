@@ -142,7 +142,9 @@ export class GameScreen {
     this.pauseBtn.type = 'button';
     this.pauseBtn.setAttribute('aria-label', 'השהיה');
     this.pauseBtn.addEventListener('click', () => this.pause());
-    status.append(this.statusName, this.statusRound, this.statusProblem, this.statusScore, this.muteBtn, this.pauseBtn);
+    const progress = el('span', 'status-progress');                    // one unit: upright phones give it a row of its own
+    progress.append(this.statusRound, this.statusProblem);
+    status.append(this.statusName, progress, this.statusScore, this.muteBtn, this.pauseBtn);
 
     this.problemEl.dir = 'auto';
     this.timer.append(this.timerBar);
