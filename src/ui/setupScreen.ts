@@ -1,5 +1,5 @@
 import type { Difficulty, GameConfig, Grade } from '../types';
-import type { Storage } from '../storage/storage';
+import type { Profile, Storage } from '../storage/storage';
 
 const GRADE_LABELS: [Grade, string][] = [[3, 'ג׳'], [4, 'ד׳'], [5, 'ה׳'], [6, 'ו׳']];
 const DIFFICULTY_LABELS: [Difficulty, string][] = [['beginner', 'מתחיל'], ['advanced', 'מתקדם'], ['expert', 'ממש מתקדם']];
@@ -23,7 +23,8 @@ function select(name: string, options: [string, string][], value: string): HTMLS
   return s;
 }
 
-export function renderSetup(root: HTMLElement, storage: Storage, onStart: (config: GameConfig) => void): void {
+/** `onPrep` adds the "הכנה למבחן" button; without it the screen is exactly the regular one. */
+export function renderSetup(root: HTMLElement, storage: Storage, onStart: (config: GameConfig) => void, onPrep?: (player: Profile) => void): void {
   const main = document.createElement('main');
   main.className = 'setup';
   const title = document.createElement('h1');
@@ -52,13 +53,18 @@ export function renderSetup(root: HTMLElement, storage: Storage, onStart: (confi
 
   const start = document.createElement('button');
   start.type = 'submit'; start.className = 'primary'; start.textContent = 'התחל';
+  let prep: HTMLButtonElement | null = null;
+  if (onPrep) {
+    prep = document.createElement('button');
+    prep.type = 'button'; prep.className = 'secondary prep-entry'; prep.textContent = 'הכנה למבחן';
+  }
 
   const secondsLabel = () => { secondsValue.textContent = `${seconds.value} שניות`; };
   const valid = () => {
     const a = Number(age.value);
     return name.value.trim().length > 0 && age.value.trim() !== '' && Number.isInteger(a) && a >= 6 && a <= 14;
   };
-  const refresh = () => { secondsLabel(); start.disabled = !valid(); };
+  const refresh = () => { secondsLabel(); start.disabled = !valid(); if (prep) prep.disabled = !valid(); };
 
   profile.addEventListener('change', () => {
     const p = profiles.find(x => x.name === profile.value);
@@ -70,6 +76,14 @@ export function renderSetup(root: HTMLElement, storage: Storage, onStart: (confi
     el.addEventListener('input', refresh);
     el.addEventListener('change', refresh);
   }
+
+  const player = (): Profile => ({ name: name.value.trim().slice(0, 20), age: Number(age.value), grade: Number(grade.value) as Grade });
+  prep?.addEventListener('click', () => {
+    if (!valid() || !onPrep) return;
+    const p = player();
+    storage.saveProfile(p);
+    onPrep(p);
+  });
 
   form.addEventListener('submit', e => {
     e.preventDefault();
@@ -90,6 +104,7 @@ export function renderSetup(root: HTMLElement, storage: Storage, onStart: (confi
     profileField, field('שם', name), field('גיל', age), field('כיתה', grade), field('דרגת קושי', difficulty),
     field('זמן לתרגיל', seconds, secondsValue), field('מספר סבבים', rounds), start,
   );
+  if (prep) form.append(prep);
   main.append(title, form);
   root.replaceChildren(main);
   refresh();

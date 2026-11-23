@@ -1,5 +1,5 @@
 import type { City, Rng, WeatherState } from '../types';
-import type { Session } from '../game/session';
+import type { GameFlow } from '../game/flow';
 import type { GameAudio } from '../audio/audio';
 import { SceneView } from '../scene/sceneView';
 import { makeLane, slotLayout } from '../scene/clouds';
@@ -32,7 +32,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
  */
 export class GameScreen {
   private readonly root: HTMLElement;
-  private readonly session: Session;
+  private readonly flow: GameFlow;
   private readonly deps: GameScreenDeps;
 
   private readonly game = el('div', 'game');
@@ -44,6 +44,7 @@ export class GameScreen {
   private readonly pauseBtn = el('button', 'pause-btn', '⏸');
   private readonly sceneRoot = el('div', 'game-sky');
   private readonly problemEl = el('div', 'problem');
+  private readonly timer = el('div', 'timer');
   private readonly timerBar = el('div', 'timer-bar');
   private readonly pauseOverlay = el('div', 'overlay pause-overlay');
   private readonly resumeBtn = el('button', 'primary', 'המשך');
@@ -62,9 +63,9 @@ export class GameScreen {
 
   private readonly onVisibility = () => { if (document.hidden) this.pause(); };
 
-  constructor(root: HTMLElement, session: Session, deps: GameScreenDeps) {
+  constructor(root: HTMLElement, flow: GameFlow, deps: GameScreenDeps) {
     this.root = root;
-    this.session = session;
+    this.flow = flow;
     this.deps = deps;
     this.scene = new SceneView(this.sceneRoot);
     this.scene.onPick = text => this.choose(text);
@@ -74,12 +75,12 @@ export class GameScreen {
   /** Fetches this round's weather, shows the scene and begins the first problem. */
   async start(): Promise<void> {
     if (this.destroyed) return;
-    const weather = await this.deps.fetchWeather(this.session.city);
+    const weather = await this.deps.fetchWeather(this.flow.city);
     if (this.destroyed) return;
-    this.scene.setBackdrop(timeOfDay(new Date()), weather, this.session.city.id);
+    this.scene.setBackdrop(timeOfDay(new Date()), weather, this.flow.city.id);
     const cardMs = this.deps.roundCardMs ?? 1200;
     if (cardMs > 0) {
-      this.roundCard.textContent = `סבב ${this.session.roundIndex + 1}`;
+      this.roundCard.textContent = this.flow.introTitle;                // may be player text (a pack name): textContent
       this.roundCard.hidden = false;
       await new Promise<void>(resolve => setTimeout(resolve, cardMs));
       this.roundCard.hidden = true;
@@ -118,7 +119,7 @@ export class GameScreen {
     this.game.classList.remove('is-paused');
     this.pauseOverlay.hidden = true;
     this.resumeBtn.blur();
-    if (this.session.phase === 'reveal') this.armReveal(this.revealRemaining);
+    if (this.flow.phase === 'reveal') this.armReveal(this.revealRemaining);
   }
 
   destroy(): void {
@@ -133,7 +134,7 @@ export class GameScreen {
   // ---- layout ---------------------------------------------------------------
   private build(): void {
     const status = el('header', 'status');
-    this.statusName.textContent = this.session.config.name;            // player text: always textContent
+    this.statusName.textContent = this.flow.playerName;                // player text: always textContent
     this.muteBtn.type = 'button';
     this.muteBtn.setAttribute('aria-label', 'השתק');
     this.muteBtn.addEventListener('click', () => this.toggleMute());
@@ -141,11 +142,14 @@ export class GameScreen {
     this.pauseBtn.type = 'button';
     this.pauseBtn.setAttribute('aria-label', 'השהיה');
     this.pauseBtn.addEventListener('click', () => this.pause());
-    status.append(this.statusName, this.statusRound, this.statusProblem, this.statusScore, this.muteBtn, this.pauseBtn);
+    const progress = el('span', 'status-progress');                    // one unit: upright phones give it a row of its own
+    progress.append(this.statusRound, this.statusProblem);
+    status.append(this.statusName, progress, this.statusScore, this.muteBtn, this.pauseBtn);
 
     this.problemEl.dir = 'auto';
-    const timer = el('div', 'timer');
-    timer.append(this.timerBar);
+    this.timer.append(this.timerBar);
+    this.timer.hidden = this.flow.timeLimitMs === null;                  // a practice has no timer
+    if (this.flow.timeLimitMs === null) this.game.classList.add('no-timer');   // lets a long pack name shrink; the regular game is untouched
 
     this.pauseOverlay.hidden = true;
     this.pauseOverlay.append(el('p', 'overlay-title', 'המשחק מושהה'));
@@ -155,7 +159,7 @@ export class GameScreen {
     if (this.deps.onNewGame) this.pauseOverlay.append(newGameControl(this.deps.onNewGame));
     this.roundCard.hidden = true;
 
-    this.game.append(status, this.sceneRoot, this.problemEl, timer, this.pauseOverlay, this.roundCard);
+    this.game.append(status, this.sceneRoot, this.problemEl, this.timer, this.pauseOverlay, this.roundCard);
     this.root.replaceChildren(this.game);
     this.updateStatus();
   }
@@ -175,16 +179,17 @@ export class GameScreen {
   }
 
   private updateStatus(): void {
-    const s = this.session;
-    this.statusRound.textContent = `סבב ${s.roundIndex + 1} מתוך ${s.config.rounds}`;
-    this.statusProblem.textContent = `תרגיל ${s.problemIndex + 1} מתוך ${s.problemsInRound}`;
-    this.statusScore.textContent = `ניקוד: ${s.totalScore}`;
+    const s = this.flow.status();                                        // may hold player text (a pack name): textContent
+    this.statusRound.textContent = s.round;
+    this.statusProblem.textContent = s.problem;
+    this.statusScore.textContent = s.score;
   }
 
   // ---- problem flow ----------------------------------------------------------------
   private beginProblem(): void {
-    const { problem } = this.session;
+    const { problem } = this.flow;
     this.problemEl.textContent = problem.text;
+    this.scene.setStubborn(this.flow.stubborn);
     const slots = slotLayout(problem.choices.length as 4 | 5 | 6);
     this.scene.setAnswers(problem.choices, slots, slots.map(slot => makeLane(slot, this.deps.rng)));
     this.startedAt = this.deps.now();
@@ -201,18 +206,19 @@ export class GameScreen {
   private loop = (): void => {
     if (this.destroyed) return;
     this.paint();
-    if (this.pausedAt === null && this.session.phase === 'problem' && this.elapsed() >= this.session.config.secondsPerProblem * 1000) {
-      this.session.timeout();
+    const limit = this.flow.timeLimitMs;
+    if (limit !== null && this.pausedAt === null && this.flow.phase === 'problem' && this.elapsed() >= limit) {
+      this.flow.timeout();
       this.afterResult();
     }
     this.frameId = requestAnimationFrame(this.loop);
   };
 
   private paint(): void {
-    const limit = this.session.config.secondsPerProblem * 1000;
+    const limit = this.flow.timeLimitMs;
     const elapsed = this.elapsed();
     this.scene.render(Math.max(0, elapsed));
-    if (this.session.phase === 'problem') {
+    if (limit !== null && this.flow.phase === 'problem') {
       const pct = Math.min(100, Math.max(0, (1 - elapsed / limit) * 100));
       this.timerBar.style.width = `${Math.round(pct * 100) / 100}%`;
       this.timerBar.classList.toggle('is-low', pct < 25);
@@ -221,17 +227,20 @@ export class GameScreen {
 
   /** The player tapped an answer. One attempt: correct scores, wrong does not; neither makes a sound but the success chime. */
   private choose(text: string): void {
-    if (this.destroyed || !this.started || this.pausedAt !== null || this.session.phase !== 'problem') return;
-    const result = this.session.choose(text, Math.max(0, this.elapsed()));
+    if (this.destroyed || !this.started || this.pausedAt !== null || this.flow.phase !== 'problem') return;
+    const elapsed = this.flow.timeLimitMs === null ? 0 : Math.max(0, this.elapsed());
+    const result = this.flow.choose(text, elapsed);
     if (result === 'invalid') return;
-    if (result === 'correct') this.deps.audio.playSuccess();
-    else this.scene.markWrong(text);
+    if (result === 'correct') {
+      this.deps.audio.playSuccess();
+      if (this.flow.celebrates) this.scene.celebrate(text, this.flow.stubborn);   // still the problem just answered
+    } else this.scene.markWrong(text);
     this.afterResult();
   }
 
   /** After a correct, wrong or timed-out problem: show the answer, then move on. */
   private afterResult(): void {
-    this.scene.highlight(this.session.problem.answer.text);
+    this.scene.highlight(this.flow.problem.answer.text);
     this.updateStatus();
     this.revealStartedAt = this.deps.now();
     this.revealRemaining = REVEAL_MS;
@@ -244,8 +253,8 @@ export class GameScreen {
     this.revealTimer = setTimeout(() => {
       this.revealTimer = null;
       if (this.destroyed) return;
-      this.session.advance();
-      if (this.session.phase === 'problem') this.beginProblem();
+      this.flow.advance();
+      if (this.flow.phase === 'problem') this.beginProblem();
       else this.deps.onRoundEnd();
     }, ms);
   }

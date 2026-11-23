@@ -1,6 +1,7 @@
 import { renderSetup } from '../../src/ui/setupScreen';
 import { Storage } from '../../src/storage/storage';
 import type { GameConfig } from '../../src/types';
+import type { Profile } from '../../src/storage/storage';
 
 function memory() {
   const data: Record<string, string> = {};
@@ -94,4 +95,57 @@ test('the name field is limited to 20 characters and works with an unavailable s
   const { q } = setup(new Storage(null));
   expect(q<HTMLInputElement>('[name=name]').maxLength).toBe(20);
   expect(q<HTMLSelectElement>('[name=profile]').closest('label, div')!.hasAttribute('hidden') || q<HTMLSelectElement>('[name=profile]').options.length <= 1).toBe(true);
+});
+
+describe('the test prep button', () => {
+  function withPrep(storage = new Storage(memory())) {
+    const root = document.createElement('div'); document.body.append(root);
+    const onStart = vi.fn<(c: GameConfig) => void>();
+    const onPrep = vi.fn<(p: Profile) => void>();
+    renderSetup(root, storage, onStart, onPrep);
+    const q = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+    const type = (el: HTMLInputElement | HTMLSelectElement, v: string) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
+    const prep = () => [...root.querySelectorAll('button')].find(b => b.textContent === 'הכנה למבחן');
+    return { root, onStart, onPrep, q, type, prep, storage };
+  }
+
+  test('there is no prep button without onPrep, and the screen is the same as before', () => {
+    const plain = setup();
+    expect([...plain.root.querySelectorAll('button')].map(b => b.textContent)).toEqual(['התחל']);
+    const html = plain.root.innerHTML;
+    document.body.innerHTML = '';
+    const withButton = withPrep();
+    withButton.prep()!.remove();
+    expect(withButton.root.innerHTML).toBe(html);       // the button is the only difference
+  });
+
+  test('with onPrep the button comes after התחל and is disabled until a name is typed', () => {
+    const { root, q, type, prep } = withPrep();
+    expect([...root.querySelectorAll('button')].map(b => b.textContent)).toEqual(['התחל', 'הכנה למבחן']);
+    expect(prep()!.type).toBe('button');
+    expect(prep()!.disabled).toBe(true);
+    type(q<HTMLInputElement>('[name=name]'), '   ');
+    expect(prep()!.disabled).toBe(true);
+    type(q<HTMLInputElement>('[name=name]'), 'דן');
+    expect(prep()!.disabled).toBe(false);
+    type(q<HTMLInputElement>('[name=age]'), '15');
+    expect(prep()!.disabled).toBe(true);
+  });
+
+  test('clicking it stores the profile and calls onPrep with it, without starting a game', () => {
+    const { q, type, prep, onPrep, onStart, storage } = withPrep();
+    type(q<HTMLInputElement>('[name=name]'), '  מיכל  '); type(q<HTMLInputElement>('[name=age]'), '11'); type(q<HTMLSelectElement>('[name=grade]'), '6');
+    prep()!.click();
+    expect(onPrep).toHaveBeenCalledWith({ name: 'מיכל', age: 11, grade: 6 });
+    expect(storage.profiles()).toEqual([{ name: 'מיכל', age: 11, grade: 6 }]);
+    expect(onStart).not.toHaveBeenCalled();
+  });
+
+  test('התחל still starts the game when the prep button is there', () => {
+    const { q, type, onPrep, onStart } = withPrep();
+    type(q<HTMLInputElement>('[name=name]'), 'דן');
+    q<HTMLButtonElement>('button[type=submit]').click();
+    expect(onStart).toHaveBeenCalledWith({ name: 'דן', age: 10, grade: 5, difficulty: 'beginner', secondsPerProblem: 30, rounds: 3 });
+    expect(onPrep).not.toHaveBeenCalled();
+  });
 });

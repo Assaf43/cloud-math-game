@@ -83,6 +83,10 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 @media (prefers-reduced-motion: reduce) {
   .scene-rain, .scene-flash { animation: none !important; }
   .scene[data-weather="storm"] .scene-flash { opacity: 0; }
+  /* test practice: a still highlight instead of parting clouds, a growing ray and a star burst */
+  .scene.is-celebrating .cloud, .scene.is-celebrating .cloud-puff,
+  .answer.is-sunlit::before, .answer.is-sunlit::after { animation: none !important; }
+  .scene.is-celebrating .cloud, .scene.is-celebrating .cloud-puff { opacity: .35; }   /* the stars stay at opacity 0 */
 }
 
 .scene-skyline { position: absolute; left: 0; right: 0; bottom: 0; height: min(46%, 34cqw); color: var(--skyline); pointer-events: none; }
@@ -134,6 +138,133 @@ bdi[dir="ltr"] { unicode-bidi: isolate; }
 .cloud-puff { position: absolute; z-index: 1; pointer-events: none; height: calc(var(--pill-h) * 1.1); margin-top: calc(var(--pill-h) * -.05); }
 .cloud-puff svg { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; aspect-ratio: 100 / 50; overflow: visible; }
 
+/* ---------- test practice visuals (prep mode only) ----------
+   is-celebrating: the clouds part and fade, a soft sun ray falls on the right answer (is-sunlit).
+   is-celebrating-big (a returning problem solved): the same plus a short burst of stars.
+   is-stubborn: darker clouds while a returning problem is open; the answers keep their white pills.
+   Only transform and opacity move, and everything settles within the 1500 ms reveal. */
+.scene.is-stubborn .cloud, .scene.is-stubborn .cloud-puff { --cloud: #7c879e; --cloud-mid: #6a748c; --cloud-shade: #586179; }
+.scene.is-celebrating .cloud:nth-child(odd), .scene.is-celebrating .cloud-puff:nth-child(odd) { animation: prep-part-left 900ms ease-out forwards; }
+.scene.is-celebrating .cloud:nth-child(even), .scene.is-celebrating .cloud-puff:nth-child(even) { animation: prep-part-right 900ms ease-out forwards; }
+@keyframes prep-part-left { to { transform: translateX(-70%); opacity: 0; } }
+@keyframes prep-part-right { to { transform: translateX(70%); opacity: 0; } }
+.answer.is-sunlit { box-shadow: 0 0 0 3px var(--good), 0 0 16px 6px rgba(255, 214, 90, .8); }
+.answer.is-sunlit::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  left: 50%; bottom: 70%; width: 150%; height: 6em;
+  background: linear-gradient(to bottom, rgba(255, 244, 190, 0), rgba(255, 228, 130, .6));
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%); transform-origin: 50% 100%; opacity: .85;
+  animation: prep-ray 1000ms ease-out;
+}
+@keyframes prep-ray { from { opacity: 0; transform: translateX(-50%) scaleY(.2); } 45% { opacity: 1; } }
+.scene.is-celebrating-big .answer.is-sunlit::after {
+  content: "\2605"; position: absolute; left: 50%; top: 50%; pointer-events: none;
+  font-size: .8em; line-height: 1; color: transparent; opacity: 0;
+  text-shadow: -1.7em -.7em 0 #ffd447, 1.7em -.7em 0 #ffe27a, -1.3em .9em 0 #fff1a8, 1.3em .9em 0 #ffd447,
+    0 -1.3em 0 #fff1a8, -2.3em .1em 0 #ffe27a, 2.3em .1em 0 #fff1a8, 0 1.25em 0 #ffe27a;
+  transform: translate(-50%, -50%);
+  animation: prep-stars 1200ms ease-out forwards;
+}
+@keyframes prep-stars {
+  0%, 12% { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) rotate(18deg); }
+}
+
+/* test practice screens: the entry button, the pack list and the pack editor. Phone first, nothing relies on hover,
+   and a line that cannot be practised is told in the same calm grey as the rest of the secondary text. */
+.prep {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); background: linear-gradient(#8ecbff, #e8f4ff);
+}
+.prep h1 { margin: 0; font-size: clamp(1.7rem, 7vw, 2.6rem); color: #15336b; text-shadow: 0 2px 0 #fff; }
+.prep-panel {
+  width: min(100%, 460px); display: grid; gap: 12px; padding: 16px 12px;
+  background: rgba(255, 255, 255, .92); border-radius: 20px; box-shadow: 0 8px 24px rgba(20, 50, 100, .2);
+}
+.setup button.secondary, .prep button.secondary {
+  min-height: 48px; padding: 0 20px; border: 0; border-radius: 14px; background: #e6eefb; color: var(--ink);
+  font-size: 1.1rem; font-weight: 800; cursor: pointer; touch-action: manipulation;
+}
+.setup button.secondary:disabled, .prep button.secondary:disabled { opacity: .5; cursor: not-allowed; }
+.prep button.primary { touch-action: manipulation; }
+.prep-empty { margin: 4px 0; font-size: 1.05rem; line-height: 1.5; color: var(--ink-soft); }
+.prep-pack-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.prep-pack { display: grid; gap: 6px; padding: 12px; border: 2px solid #c3d3ea; border-radius: 14px; background: #fff; }
+.prep-pack-name { margin: 0; font-size: 1.25rem; color: #15336b; overflow-wrap: anywhere; }
+.prep-pack-info { margin: 0; font-weight: 700; color: var(--ink-soft); }
+.prep-pack-stars { color: #6b4a00; }
+.prep-pack-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.prep-pack-actions button { flex: 1 1 auto; min-height: 44px; padding: 0 14px; font-size: 1.05rem; }
+.prep-pack-question { flex: 1 1 100%; margin: 0; font-weight: 800; }
+.prep button.prep-delete { background: #ffe9c7; color: #6b4a00; }
+.prep-rows { display: grid; gap: 8px; }
+.prep-row-box { display: grid; gap: 2px; }
+.prep input.prep-row {
+  width: 100%; font: inherit; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  text-align: left; padding: 8px 12px; border: 2px solid #c3d3ea; border-radius: 10px; background: #fff; color: var(--ink);
+}
+.prep input.prep-row:focus { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.prep-row-status { margin: 0; min-height: 0; font-size: .95rem; font-weight: 600; color: var(--ink-soft); }
+.prep-row-status:empty { display: none; }
+.keypad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.keypad-key {
+  min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 12px; background: #e6eefb; color: var(--ink);
+  font-size: 1.45rem; font-weight: 800; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 0 #c3d3ea; user-select: none; -webkit-user-select: none;
+}
+.keypad-key:active { transform: translateY(2px); box-shadow: none; background: #d4e2f7; }
+.prep-summary, .prep-hint { margin: 0; font-weight: 700; color: var(--ink-soft); }
+.prep-samples h2 { margin: 0 0 6px; font-size: 1.05rem; color: #15336b; }
+.prep-sample-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 1.2rem; font-weight: 700; }
+.prep-sample-list li { text-align: right; unicode-bidi: isolate; }   /* each problem reads left to right (dir="ltr") */
+.prep-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.prep-actions button { flex: 1 1 auto; }
+/* the way (review) and the practice summary: calm cards, steps in large clear digits, no red and no "wrong" marks */
+.prep-review-card { display: grid; gap: 8px; padding: 12px; border: 2px solid #c3d3ea; border-radius: 14px; background: #fff; }
+.prep-review-exercise, .prep-twin-exercise {
+  margin: 0; font-size: 1.6rem; font-weight: 900; font-variant-numeric: tabular-nums; text-align: center; unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+.prep-review-answer { margin: 0; font-size: 1.15rem; font-weight: 800; color: #15336b; }
+.prep-steps {
+  margin: 0; padding: 8px 12px 8px 2.2em; display: grid; gap: 4px; border-radius: 10px; background: #f3f7fd; unicode-bidi: isolate;
+  font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; overflow-wrap: anywhere;
+}
+.prep-slip { margin: 0; padding: 8px 12px; border-radius: 10px; background: #fff6d6; color: #6b4a00; font-weight: 700; line-height: 1.45; }
+.prep-twin { display: grid; gap: 8px; }
+.prep-twin-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.prep-choice {
+  min-width: 0; min-height: 52px; padding: 6px 8px; border: 2px solid #c3d3ea; border-radius: 14px; background: #fff; color: var(--ink);
+  font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; cursor: pointer; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.prep-choice:disabled { cursor: default; }
+.prep-choice:disabled:not(.is-sunlit) { opacity: .6; }
+.prep-choice.is-sunlit { border-color: var(--good); background: #fffbe6; box-shadow: 0 0 0 3px var(--good), 0 0 16px 6px rgba(255, 214, 90, .8); }
+.prep-twin-result { margin: 0; min-height: 1.4em; font-size: 1.4rem; font-weight: 900; color: #15336b; text-align: center; }
+.prep-twin-result:empty { min-height: 0; }
+.prep-stat { margin: 0; font-size: 1.35rem; font-weight: 800; text-align: center; color: var(--ink); }
+.prep-notice { margin: 0; padding: 8px 12px; border-radius: 10px; background: #e6eefb; color: var(--ink-soft); font-weight: 700; line-height: 1.45; }
+.prep-perfect {
+  position: relative; justify-self: center; margin: 4px 0; padding: 8px 22px; border-radius: 999px; background: #ffe27a; color: #6b4a00;
+  font-size: clamp(1.5rem, 7vw, 2.1rem); font-weight: 900; box-shadow: 0 0 18px 6px rgba(255, 214, 90, .7);
+  animation: pop .5s ease-out;
+}
+.prep-perfect::after {
+  content: "\2605"; position: absolute; left: 50%; top: 50%; pointer-events: none;
+  font-size: .8em; line-height: 1; color: transparent; opacity: 0;
+  text-shadow: -4em -.9em 0 #ffd447, 4em -.9em 0 #ffe27a, -3.4em 1em 0 #fff1a8, 3.4em 1em 0 #ffd447,
+    0 -1.6em 0 #fff1a8, -5em .1em 0 #ffe27a, 5em .1em 0 #fff1a8, 0 1.6em 0 #ffe27a;
+  transform: translate(-50%, -50%);
+  animation: prep-stars 1200ms ease-out .2s forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .keypad-key:active { transform: none; }
+  .prep-perfect, .prep-perfect::after { animation: none !important; }   /* the stars stay at opacity 0 */
+}
+
 /* ---------- shared widgets ---------- */
 button { font-family: inherit; }
 button.primary {
@@ -170,9 +301,23 @@ button.primary:active:not(:disabled) { transform: translateY(2px); box-shadow: 0
   display: flex; flex-wrap: nowrap; align-items: center; gap: 4px 10px; padding: 3px 8px;
   background: #fff; font-size: clamp(.68rem, 2.3dvh, 1rem); font-weight: 700; white-space: nowrap;
 }
-.status-name { flex: 0 1 auto; min-width: 0; max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+/* Mute and pause (pause is the only way out of a game) must stay on the screen on every phone and at every text size:
+   the buttons never shrink and the texts give way with an ellipsis: the name first, then the round, then the problem. */
+.status-name { flex: 0 100000000 auto; min-width: 0; max-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+.status-progress { display: contents; }
+.status-round, .status-problem { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.status-round { flex-shrink: 10000; }
 .status-score { margin-inline-start: auto; }
+/* upright screens: one row cannot hold it all, so round and problem take a second row; the name gets what is left of the first */
+@media (orientation: portrait) {
+  .status { flex-wrap: wrap; row-gap: 0; }
+  .status-name { flex: 1 1 0; max-width: none; }
+  .status-progress { display: flex; order: 1; flex: 0 0 100%; min-width: 0; gap: 10px; }
+  .status-problem { margin-inline-start: auto; }
+}
 .status button { flex: none; min-width: 32px; height: 28px; border: 0; border-radius: 8px; background: #e6eefb; font-size: 1.1rem; cursor: pointer; }
+/* a practice: the pack name (up to 30 characters) shrinks so pause and mute stay on the bar */
+.game.no-timer .status-round { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-sky { flex: 1 1 0; min-height: 36%; position: relative; }
 .problem {
   flex: none; padding: 4px 12px; text-align: center; font-weight: 900; color: var(--ink);

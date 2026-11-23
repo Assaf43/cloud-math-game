@@ -93,3 +93,10 @@ test('advance from the city bonus needs an answer first', () => {
   s.advance();
   expect(() => s.advance()).toThrow();
 });
+
+test('Session satisfies the GameFlow getters', () => {
+  const s = new Session({ ...cfg, rounds: 3 }, createRng(1), CITIES);
+  expect(s.playerName).toBe('נועה'); expect(s.timeLimitMs).toBe(30000);
+  expect(s.introTitle).toBe('סבב 1'); expect(s.celebrates).toBe(false); expect(s.stubborn).toBe(false);
+  expect(s.status()).toEqual({ round: 'סבב 1 מתוך 3', problem: `תרגיל 1 מתוך ${s.problemsInRound}`, score: 'ניקוד: 0' });
+});

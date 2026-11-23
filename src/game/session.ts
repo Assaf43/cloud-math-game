@@ -2,6 +2,7 @@ import type { City, GameConfig, Problem, Rng } from '../types';
 import { randInt, shuffle } from '../rng';
 import { generateProblem } from '../problems';
 import { eq } from '../problems/rational';
+import type { GameFlow } from './flow';
 import { CITY_BONUS, problemPoints } from './scoring';
 
 export type Phase = 'problem' | 'reveal' | 'roundSummary' | 'cityBonus' | 'finished';
@@ -14,7 +15,7 @@ export interface RoundStats {
   cityCorrect: boolean | null;
 }
 
-export class Session {
+export class Session implements GameFlow {
   readonly config: GameConfig;
   private readonly rng: Rng;
   private readonly roundCities: City[];
@@ -46,6 +47,11 @@ export class Session {
     this.startRound();
   }
 
+  get playerName(): string { return this.config.name; }
+  get timeLimitMs(): number { return this.config.secondsPerProblem * 1000; }
+  get introTitle(): string { return `סבב ${this._roundIndex + 1}`; }
+  get stubborn(): boolean { return false; }
+  get celebrates(): boolean { return false; }
   get phase(): Phase { return this._phase; }
   get roundIndex(): number { return this._roundIndex; }
   get problemIndex(): number { return this._problemIndex; }
@@ -58,6 +64,14 @@ export class Session {
   get totalScore(): number { return this._mathPoints + this._cityPoints; }
   get avgPointsPerProblem(): number {
     return this._answered === 0 ? 0 : Math.round(this._mathPoints / this._answered);
+  }
+
+  status(): { round: string; problem: string; score: string } {
+    return {
+      round: `סבב ${this._roundIndex + 1} מתוך ${this.config.rounds}`,
+      problem: `תרגיל ${this._problemIndex + 1} מתוך ${this._problemsInRound}`,
+      score: `ניקוד: ${this.totalScore}`,
+    };
   }
 
   /** The player tapped the answer showing `answerText`. One attempt: right or wrong ends the problem. */
