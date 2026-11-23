@@ -82,6 +82,14 @@ function sampleTexts(lines: readonly PackLine[], grade: Grade): string[] {
   return out;
 }
 
+/** What is still missing before the pack can be saved, one thing at a time; '' when `canSave` holds. */
+function saveBlocker(name: string, lines: readonly PackLine[]): string {
+  if (lines.length < MIN_LINES) return `צריך לפחות ${MIN_LINES} תרגילים`;
+  if (!lines.some((l) => l.analysis.ok)) return 'צריך לפחות תרגיל אחד שאפשר לתרגל';
+  if (name.trim() === '') return 'צריך לתת שם לחבילה, בשדה שלמעלה';
+  return '';
+}
+
 export function renderPrepEdit(root: HTMLElement, o: { grade: Grade; pack?: Pack;
   onSave(name: string, examples: string[]): void; onCancel(): void }): void {
   const main = el('main', 'prep prep-edit');
@@ -100,7 +108,8 @@ export function renderPrepEdit(root: HTMLElement, o: { grade: Grade; pack?: Pack
   let target = rows[0].input;               // the keypad types into the row that had the focus last
 
   const summary = el('p', 'prep-summary');
-  const hint = el('p', 'prep-hint');
+  const hint = el('p', 'prep-hint');                 // why "שמירה" is still off; sits right above it
+  hint.setAttribute('aria-live', 'polite');
   const samples = el('section', 'prep-samples');
   const sampleList = el('ol', 'prep-sample-list');
   samples.append(el('h2', undefined, 'דוגמאות למה שיופיע בתרגול'), sampleList);
@@ -123,8 +132,9 @@ export function renderPrepEdit(root: HTMLElement, o: { grade: Grade; pack?: Pack
     const supported = lines.filter((l) => l.analysis.ok).length;
     summary.hidden = !(lines.length > 0 && supported < lines.length);
     summary.textContent = summary.hidden ? '' : `אפשר לתרגל ${supported} מתוך ${lines.length}`;
-    hint.hidden = lines.length >= MIN_LINES;
-    hint.textContent = hint.hidden ? '' : `צריך לפחות ${MIN_LINES} תרגילים`;
+    const missing = saveBlocker(name.value, lines);
+    hint.hidden = missing === '';
+    hint.textContent = missing;
     save.disabled = !canSave(name.value, lines);
     const texts = sampleTexts(lines, o.grade);
     sampleList.replaceChildren(...texts.map((t) => { const li = el('li', undefined, t); li.dir = 'ltr'; return li; }));
@@ -144,7 +154,7 @@ export function renderPrepEdit(root: HTMLElement, o: { grade: Grade; pack?: Pack
 
   const actions = el('div', 'prep-actions');
   actions.append(save, button('ביטול', 'secondary', o.onCancel));
-  panel.append(nameField, rowList, keypad, summary, hint, samples, actions);
+  panel.append(nameField, rowList, keypad, summary, samples, hint, actions);
   main.append(el('h1', undefined, o.pack ? 'עריכת חבילה' : 'חבילה חדשה'), panel);
   root.replaceChildren(main);
   refresh();
